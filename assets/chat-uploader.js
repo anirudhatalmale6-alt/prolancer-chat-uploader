@@ -565,7 +565,11 @@
                 done.forEach(removeItem);
                 syncUi();
 
-                send();   // no-op in the demo (no chat form)
+                // Hand off to the normal send path, so the message is stored,
+                // rendered in the chat and pushed live to the other side exactly
+                // as a typed message would be. Nothing about sending is
+                // reimplemented here.
+                send();
 
                 // Only close when everything went through; if some rows failed,
                 // stay open so the user can see which ones and retry.
@@ -693,7 +697,11 @@
         emit: function (evt, payload) {
             (handlers[evt] || []).forEach(function (fn) { fn(payload); });
         },
-        init: init
+        init: init,
+
+        // Shared with the emoji picker so there is one scrollbar implementation
+        // on the page, not two that can drift apart.
+        scrollbar: attachScrollbar
     };
 
     document.addEventListener('DOMContentLoaded', function () {

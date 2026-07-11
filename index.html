@@ -53,19 +53,54 @@
     <div class="chat-card">
         <div class="chat-head">Messages</div>
 
-        <div class="chat-log" id="chat-log">
+        <!-- .chat-box is what the viewer scopes "all files in this chat" to,
+             so the demo mirrors the real template's wrapper. -->
+        <div class="chat-log chat-box" id="chat-log">
             <div class="msg them">
                 <div class="who">Client</div>
                 <div class="bubble">Hi, can you send over the design files?</div>
             </div>
             <div class="msg me">
                 <div class="who">You</div>
-                <div class="bubble">Sure, attaching them now.</div>
+                <div class="bubble">Sure, here's the first batch.</div>
+                <div class="pcu-chat-attachments">
+                    <a class="pcu-chat-thumb" href="fixtures/mockup-homepage.png" target="_blank" rel="noopener"
+                       title="mockup-homepage" data-kind="image" data-file="mockup-homepage.png">
+                        <img src="fixtures/mockup-homepage.png" alt="" width="84" height="64">
+                        <span class="pcu-chat-caption">mockup-homepage</span>
+                    </a>
+                    <a class="pcu-chat-thumb" href="fixtures/wireframe.png" target="_blank" rel="noopener"
+                       title="wireframe" data-kind="image" data-file="wireframe.png">
+                        <img src="fixtures/wireframe.png" alt="" width="84" height="64">
+                        <span class="pcu-chat-caption">wireframe</span>
+                    </a>
+                    <a class="pcu-chat-thumb" href="fixtures/spec-sheet.pdf" target="_blank" rel="noopener"
+                       title="spec-sheet" data-kind="file" data-file="spec-sheet.pdf">
+                        <span class="pcu-chat-file">PDF</span>
+                        <span class="pcu-chat-caption">spec-sheet</span>
+                    </a>
+                </div>
+            </div>
+            <div class="msg them">
+                <div class="who">Client</div>
+                <div class="bubble">Great. Here's the clip I mentioned 👍</div>
+                <div class="pcu-chat-attachments">
+                    <a class="pcu-chat-thumb" href="fixtures/clip.mp4" target="_blank" rel="noopener"
+                       title="clip" data-kind="video" data-file="clip.mp4">
+                        <span class="pcu-chat-file">MP4</span>
+                        <span class="pcu-chat-caption">clip</span>
+                    </a>
+                    <a class="pcu-chat-thumb" href="fixtures/project-files.zip" target="_blank" rel="noopener"
+                       title="project-files" data-kind="file" data-file="project-files.zip">
+                        <span class="pcu-chat-file">ZIP</span>
+                        <span class="pcu-chat-caption">project-files</span>
+                    </a>
+                </div>
             </div>
         </div>
 
         <div class="composer">
-            <textarea rows="2" placeholder="Type your message here..."></textarea>
+            <textarea rows="2" name="message" placeholder="Type your message here..."></textarea>
 
             <div class="composer-row">
                 <!-- Replaces the old "Choose File / No file chosen" input -->
@@ -76,6 +111,17 @@
                     </svg>
                     <span class="pcu-attach-count">0</span>
                 </button>
+
+                <span class="pcu-emoji-wrap">
+                    <button type="button" class="pcu-emoji-btn" aria-label="Insert emoji" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M8.5 14.5a4.2 4.2 0 0 0 7 0"/>
+                            <path d="M9 9.5h.01M15 9.5h.01"/>
+                        </svg>
+                    </button>
+                </span>
 
                 <button type="button" class="btn-send">
                     <span>Send message</span>
@@ -139,10 +185,13 @@
 
 <script>
     window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 50 };
+    window.PCU_EMOJI  = { url: 'assets/emoji-data.json' };
 </script>
 <!-- defer keeps both off the critical path and preserves execution order,
      so the chat page paints without waiting on the uploader. -->
 <script src="assets/chat-uploader.js" defer></script>
+<script src="assets/chat-emoji.js" defer></script>
+<script src="assets/chat-viewer.js" defer></script>
 <script>
 // ---- Host-page glue: drop uploaded files into the chat area ----------------
 // Deferred scripts run before DOMContentLoaded, so window.PCU exists by now.

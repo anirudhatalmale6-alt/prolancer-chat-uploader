@@ -206,6 +206,13 @@ function prolancer_realtime_attachments( $stored ) {
 			'thumb'    => $thumb ? $thumb : '',
 			'name'     => get_the_title( $id ),
 			'is_image' => (bool) $is_image,
+
+			// The viewer needs the same two facts the server-rendered markup
+			// carries, or an attachment that arrives live would open blank.
+			// 'file' is also the only place the real extension survives —
+			// get_the_title() has already stripped it.
+			'kind'     => function_exists( 'pcu_attachment_kind' ) ? pcu_attachment_kind( $id ) : 'file',
+			'file'     => wp_basename( $url ),
 		);
 	}
 

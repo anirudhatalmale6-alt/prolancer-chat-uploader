@@ -36,7 +36,7 @@
 	 * matching how the page renders them server-side on load (pcu_render_attachments),
 	 * so an optimistically-appended message looks identical to a reloaded one.
 	 *
-	 * @param {Array} list [{url, thumb, name, is_image}]
+	 * @param {Array} list [{url, thumb, name, is_image, kind, file}]
 	 */
 	function attachmentStrip(list) {
 		if (!list || !list.length) {
@@ -51,7 +51,11 @@
 				href: a.url,
 				target: '_blank',
 				rel: 'noopener',
-				title: a.name
+				title: a.name,
+				// Read by the media viewer, exactly as on the server-rendered
+				// markup — so a file that arrives live opens the same way.
+				'data-kind': a.kind || (a.is_image ? 'image' : 'file'),
+				'data-file': a.file || ''
 			});
 
 			if (a.is_image && (a.thumb || a.url)) {
@@ -63,7 +67,9 @@
 					height: 64
 				}).appendTo($a);
 			} else {
-				var ext = (a.name || '').split('.').pop();
+				// The extension lives in the filename — the title has had it
+				// stripped, so deriving it from a.name would print the title.
+				var ext = (a.file || '').split('.').pop() || 'file';
 				$('<span/>', { 'class': 'pcu-chat-file' }).text(ext.toUpperCase()).appendTo($a);
 			}
 

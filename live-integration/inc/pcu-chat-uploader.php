@@ -218,6 +218,40 @@ function pcu_enqueue_assets() {
 			'acceptedFiles' => pcu_accepted_files(),
 		)
 	);
+
+	// Emoji picker. Depends on the uploader for the shared scrollbar.
+	wp_enqueue_script(
+		'pcu-chat-emoji',
+		$uri . '/assets/js/chat-emoji.js',
+		array( 'pcu-chat-uploader' ),
+		pcu_asset_version( $dir . '/assets/js/chat-emoji.js' ),
+		true
+	);
+
+	// Only the URL — the ~1,900 emoji themselves are fetched the first time the
+	// picker is opened. Inlining them would put 11 KB of uncacheable characters
+	// into the HTML of every chat page, including for everyone who never opens
+	// it. As a file the browser caches it once and reuses it everywhere.
+	wp_localize_script(
+		'pcu-chat-emoji',
+		'PCU_EMOJI',
+		array(
+			'url' => add_query_arg(
+				'ver',
+				pcu_asset_version( $dir . '/assets/emoji-data.json' ),
+				$uri . '/assets/emoji-data.json'
+			),
+		)
+	);
+
+	// Media viewer. Stands alone — it only needs the markup in the chat.
+	wp_enqueue_script(
+		'pcu-chat-viewer',
+		$uri . '/assets/js/chat-viewer.js',
+		array(),
+		pcu_asset_version( $dir . '/assets/js/chat-viewer.js' ),
+		true
+	);
 }
 add_action( 'wp_enqueue_scripts', 'pcu_enqueue_assets' );
 
@@ -225,7 +259,9 @@ add_action( 'wp_enqueue_scripts', 'pcu_enqueue_assets' );
  * `defer` keeps the script off the critical render path.
  */
 function pcu_defer_script( $tag, $handle ) {
-	if ( 'pcu-chat-uploader' === $handle && false === strpos( $tag, ' defer' ) ) {
+	$ours = array( 'pcu-chat-uploader', 'pcu-chat-emoji', 'pcu-chat-viewer' );
+
+	if ( in_array( $handle, $ours, true ) && false === strpos( $tag, ' defer' ) ) {
 		$tag = str_replace( ' src=', ' defer src=', $tag );
 	}
 
@@ -413,6 +449,29 @@ function pcu_parse_attachment_ids( $stored ) {
  *
  * @param string $stored Raw attachment_id column value.
  */
+/**
+ * How the viewer should present an attachment.
+ *
+ * Only image, video and audio can actually be shown — everything else (pdf,
+ * zip, docx…) has no preview, so the viewer draws a file tile instead.
+ *
+ * @param int $id Attachment ID.
+ * @return string 'image' | 'video' | 'audio' | 'file'
+ */
+function pcu_attachment_kind( $id ) {
+	if ( wp_attachment_is_image( $id ) ) {
+		return 'image';
+	}
+
+	foreach ( array( 'video', 'audio' ) as $kind ) {
+		if ( wp_attachment_is( $kind, $id ) ) {
+			return $kind;
+		}
+	}
+
+	return 'file';
+}
+
 function pcu_render_attachments( $stored ) {
 	$ids = pcu_parse_attachment_ids( $stored );
 
@@ -434,10 +493,15 @@ function pcu_render_attachments( $stored ) {
 		$thumb   = $is_img ? wp_get_attachment_image_url( $id, 'thumbnail' ) : '';
 		$ext     = strtoupper( pathinfo( $url, PATHINFO_EXTENSION ) );
 
+		// The viewer reads these: what to render the file AS, and the real
+		// filename to hand the browser's save dialogue (the post title has had
+		// its extension stripped).
 		printf(
-			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" title="%s">',
+			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" title="%s" data-kind="%s" data-file="%s">',
 			esc_url( $url ),
-			esc_attr( $name )
+			esc_attr( $name ),
+			esc_attr( pcu_attachment_kind( $id ) ),
+			esc_attr( wp_basename( $url ) )
 		);
 
 		if ( $is_img && $thumb ) {
@@ -480,6 +544,20 @@ function pcu_attach_button() {
 		</svg>
 		<span class="pcu-attach-count">0</span>
 	</button>
+
+	<?php // The wrapper is what the popup is positioned against. Rendered here,
+	      // not created in JS, so the composer's layout is final before paint. ?>
+	<span class="pcu-emoji-wrap">
+		<button type="button" class="pcu-emoji-btn" aria-label="<?php esc_attr_e( 'Insert emoji', 'prolancer' ); ?>"
+				aria-expanded="false">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+				 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="12" cy="12" r="9"/>
+				<path d="M8.5 14.5a4.2 4.2 0 0 0 7 0"/>
+				<path d="M9 9.5h.01M15 9.5h.01"/>
+			</svg>
+		</button>
+	</span>
 	<?php
 
 	// One modal per page, however many composers there are.

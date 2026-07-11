@@ -697,7 +697,11 @@
         emit: function (evt, payload) {
             (handlers[evt] || []).forEach(function (fn) { fn(payload); });
         },
-        init: init
+        init: init,
+
+        // Shared with the emoji picker so there is one scrollbar implementation
+        // on the page, not two that can drift apart.
+        scrollbar: attachScrollbar
     };
 
     document.addEventListener('DOMContentLoaded', function () {

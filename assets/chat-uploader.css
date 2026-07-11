@@ -800,3 +800,355 @@
     opacity: .45;
     cursor: not-allowed;
 }
+
+/* --------------------------------------------------------------------------
+   13. Emoji picker
+   --------------------------------------------------------------------------
+   The button sits next to the attach icon and shares its shape, so the two
+   read as a pair. The popup is anchored to the button and opens UPWARDS — the
+   composer lives at the bottom of the chat, so downwards would run off-screen.
+   -------------------------------------------------------------------------- */
+.pcu-emoji-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid var(--pcu-border);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--pcu-muted);
+    cursor: pointer;
+    transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+
+.pcu-emoji-btn:hover,
+.pcu-emoji-btn:focus-visible,
+.pcu-emoji-btn[aria-expanded="true"] {
+    color: var(--pcu-primary);
+    border-color: var(--pcu-primary);
+    background: var(--pcu-primary-soft);
+}
+
+.pcu-emoji-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+#send-service-message-form .pcu-emoji-wrap,
+#send-project-message-form .pcu-emoji-wrap {
+    margin: 12px 10px 12px 0;
+    vertical-align: middle;
+}
+
+/* The button's wrapper is the popup's positioning context — a <button> cannot
+   contain the popup (invalid markup, and every click inside would fire the
+   button), so the popup is a sibling and this span anchors it. Rendered by PHP,
+   so the composer's layout is settled before first paint: nothing shifts. */
+.pcu-emoji-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+/* The popup itself.
+   `display:none` until open, so the ~1,900 emoji inside are never laid out on
+   a page where the picker is not used — and nothing can shift on load. */
+.pcu-emoji-pop {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    z-index: 1060;
+    display: none;
+    width: 352px;
+    max-width: calc(100vw - 32px);
+    background: #fff;
+    border: 1px solid var(--pcu-border);
+    border-radius: var(--pcu-radius);
+    box-shadow: 0 12px 34px rgb(60 66 87 / 18%);
+    overflow: hidden;
+}
+
+.pcu-emoji-pop.is-open {
+    display: block;
+}
+
+
+.pcu-emoji-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--pcu-border);
+    padding: 0 4px;
+}
+
+.pcu-emoji-tab {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    padding: 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--pcu-muted);
+    cursor: pointer;
+    transition: color .15s ease;
+}
+
+.pcu-emoji-tab svg {
+    width: 19px;
+    height: 19px;
+}
+
+.pcu-emoji-tab:hover {
+    color: var(--pcu-text);
+}
+
+.pcu-emoji-tab.is-active {
+    color: var(--pcu-primary);
+    border-bottom-color: var(--pcu-primary);
+}
+
+.pcu-emoji-scroll-wrap {
+    position: relative;
+    height: 268px;               /* fixed: the popup never grows or jumps */
+}
+
+.pcu-emoji-body {
+    height: 100%;
+    overflow-y: auto;
+    padding: 4px 10px 10px;
+}
+
+.pcu-emoji-head {
+    padding: 10px 4px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--pcu-text);
+    background: #fff;
+    position: sticky;            /* keeps the group name visible while scrolling */
+    top: 0;
+    z-index: 1;
+}
+
+/* No recents yet — hide the heading rather than leave an empty band. */
+.pcu-emoji-section.is-empty {
+    display: none;
+}
+
+.pcu-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+}
+
+.pcu-emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+    /* Emoji only render in colour from the system font — never override this
+       with the theme's font stack. */
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    font-size: 23px;
+    line-height: 1;
+    transition: background-color .1s ease;
+}
+
+.pcu-emoji:hover,
+.pcu-emoji:focus-visible {
+    background: var(--pcu-primary-soft);
+}
+
+/* --------------------------------------------------------------------------
+   14. Media viewer
+   --------------------------------------------------------------------------
+   Full-screen overlay: position top left, download + close top right, arrows
+   either side, filename underneath.
+   -------------------------------------------------------------------------- */
+.pcu-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    display: none;
+    background: rgb(0 0 0 / 88%);
+    user-select: none;
+}
+
+.pcu-viewer.is-open {
+    display: block;
+}
+
+.pcu-viewer-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    background: rgb(0 0 0 / 55%);
+    color: #fff;
+    z-index: 2;
+}
+
+.pcu-viewer-count {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+
+.pcu-viewer-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.pcu-viewer-btn,
+.pcu-viewer-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    opacity: .75;
+    cursor: pointer;
+    transition: opacity .15s ease;
+}
+
+.pcu-viewer-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+}
+
+.pcu-viewer-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.pcu-viewer-btn:hover,
+.pcu-viewer-nav:hover {
+    opacity: 1;
+    background: rgb(255 255 255 / 12%);
+}
+
+.pcu-viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    z-index: 2;
+}
+
+.pcu-viewer-nav svg {
+    width: 26px;
+    height: 26px;
+}
+
+.pcu-viewer-prev { left: 14px;  }
+.pcu-viewer-next { right: 14px; }
+
+.pcu-viewer-nav[hidden] {
+    display: none;               /* one file: nothing to step to */
+}
+
+/* The stage is inset by the bar and the caption, so the media is never hidden
+   behind either — and `object-fit: contain` keeps it undistorted whatever the
+   aspect ratio. */
+.pcu-viewer-stage {
+    position: absolute;
+    inset: 48px 72px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pcu-viewer-media {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Spinning the download without blocking the page. */
+.pcu-viewer.is-downloading .pcu-viewer-download {
+    opacity: .35;
+    pointer-events: none;
+}
+
+/* No preview for this type — show what it is instead of a broken image. */
+.pcu-viewer-file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 200px;
+    height: 200px;
+    border-radius: var(--pcu-radius);
+    background: rgb(255 255 255 / 8%);
+    color: #fff;
+}
+
+.pcu-viewer-file svg {
+    width: 64px;
+    height: 64px;
+    stroke-width: 1.4;
+    opacity: .9;
+}
+
+.pcu-viewer-file span {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .6px;
+    opacity: .8;
+}
+
+.pcu-viewer-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 16px 20px;
+    color: #fff;
+    font-size: 13px;
+    text-align: center;
+    word-break: break-all;
+    opacity: .85;
+}
+
+/* Rule 6: stays usable on a phone. The side arrows would eat most of a narrow
+   screen, so they drop to the bottom corners and the stage takes the width. */
+@media (max-width: 575px) {
+    .pcu-viewer-stage {
+        inset: 48px 8px 92px;
+    }
+
+    .pcu-viewer-nav {
+        top: auto;
+        bottom: 10px;
+        transform: none;
+    }
+
+    .pcu-viewer-caption {
+        bottom: 62px;
+        padding: 0 16px;
+    }
+
+    .pcu-emoji-pop {
+        width: calc(100vw - 24px);
+    }
+
+    .pcu-emoji-grid {
+        grid-template-columns: repeat(7, 1fr);
+    }
+}
