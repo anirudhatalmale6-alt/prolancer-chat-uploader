@@ -190,7 +190,8 @@
 .pcu-sb-thumb {
     position: absolute;
     right: 2px;                     /* = .simplebar-scrollbar */
-    width: 6px;
+    /* Dhonu/SimpleBar is 6px; client asked for 2px thinner here. */
+    width: 4px;
     min-height: 10px;
     border-radius: 7px;             /* = .simplebar-scrollbar:before */
     background: #a2adb7;
@@ -477,49 +478,19 @@
 }
 
 /* --------------------------------------------------------------------------
-   7. Spinner — THE site spinner. One definition, reused for every action.
+   7. Spinner — NOT defined here, deliberately.
 
-      This is the 12-blade loader already used on page load, rebuilt as an
-      inline SVG data URI: no extra HTTP request, no image file to go missing,
-      and it scales to any size without going fuzzy.
+      The site already has one: `.processing-loader` in the ProLancer plugin
+      (assets/css/dashboard.css), which overlays assets/images/loader.gif. The
+      plugin uses it on the message form during upload.
 
-      It ticks in 12 discrete steps rather than sweeping smoothly, which is
-      what makes a bladed spinner read correctly — a linear rotation looks
-      wrong on this shape.
+      This uploader reuses that exact class and that exact gif rather than
+      shipping its own, so when the spinner is restyled later it is changed in
+      ONE place and every spinner on the site changes with it — including this
+      one. Defining a lookalike here would mean two spinners to maintain.
 
-      Size it per use with --pcu-spinner-size; colour is baked into the blades
-      to match the existing grey.
+      Applied in JS: the modal dialog gets .processing-loader while uploading.
    -------------------------------------------------------------------------- */
-.pcu-spinner {
-    --pcu-spinner-size: 16px;
-
-    display: inline-block;
-    width: var(--pcu-spinner-size);
-    height: var(--pcu-spinner-size);
-    flex: 0 0 auto;
-    vertical-align: -2px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.12' transform='rotate%280 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.2' transform='rotate%2830 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.28' transform='rotate%2860 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.36' transform='rotate%2890 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.44' transform='rotate%28120 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.52' transform='rotate%28150 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.6' transform='rotate%28180 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.68' transform='rotate%28210 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.76' transform='rotate%28240 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.84' transform='rotate%28270 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.92' transform='rotate%28300 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='1.0' transform='rotate%28330 12 12%29'/%3E%3C/svg%3E") center / contain no-repeat;
-    animation: pcu-spin 1s steps(12, end) infinite;
-}
-
-.pcu-spinner.is-hidden {
-    display: none;
-}
-
-/* Bigger, centred variant — for page/section loads rather than inside a button */
-.pcu-spinner-lg {
-    --pcu-spinner-size: 44px;
-    display: block;
-    margin: 0 auto;
-}
-
-@keyframes pcu-spin {
-    to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .pcu-spinner { animation-duration: 3s; }
-}
 
 /* --------------------------------------------------------------------------
    8. Attachments rendered into the chat area after upload

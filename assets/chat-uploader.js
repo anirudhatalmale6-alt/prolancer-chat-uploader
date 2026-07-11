@@ -248,6 +248,7 @@
         var seq = 0;
 
         var modalNode = root.querySelector('.pcu-modal');
+        var dialog    = root.querySelector('.pcu-modal-dialog');
         var dropzone  = root.querySelector('.pcu-dropzone');
         var input     = root.querySelector('.pcu-input');
         var browse    = root.querySelector('.pcu-dz-browse');
@@ -255,7 +256,6 @@
         var body      = root.querySelector('.pcu-modal-body');
         var uploadBtn = root.querySelector('.pcu-btn-upload');
         var uploadTxt = uploadBtn.querySelector('.pcu-btn-label');
-        var spinner   = uploadBtn.querySelector('.pcu-spinner');
         var closeBtn  = root.querySelector('.pcu-btn-close');
         var attachBtn = document.querySelector('.pcu-attach-btn');
         var countEl   = attachBtn ? attachBtn.querySelector('.pcu-attach-count') : null;
@@ -467,9 +467,14 @@
         function setUploading(on) {
             uploading = on;
             uploadBtn.disabled = on || pending().length === 0;
-            spinner.classList.toggle('is-hidden', !on);
             uploadTxt.textContent = on ? 'Uploading…' : 'Upload';
             closeBtn.disabled = on;
+
+            // THE site spinner: `.processing-loader` from the ProLancer plugin,
+            // which overlays its own loader.gif. Reused rather than reimplemented
+            // so that restyling the spinner later is a single change, in their
+            // file, and this picks it up for free.
+            dialog.classList.toggle('processing-loader', on);
         }
 
         uploadBtn.addEventListener('click', function () {
