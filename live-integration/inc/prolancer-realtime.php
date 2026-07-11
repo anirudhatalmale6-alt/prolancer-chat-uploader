@@ -226,6 +226,15 @@ function prolancer_realtime_attachments( $stored ) {
 			'kind'     => $kind,
 			'file'     => wp_basename( $url ),
 			'poster'   => $poster,
+
+			// So a live-appended attachment looks identical to a reloaded one:
+			// the same type icon, and the same two-line tooltip.
+			'icon'     => function_exists( 'pcu_file_icon_url' )
+				? pcu_file_icon_url( pathinfo( $url, PATHINFO_EXTENSION ) )
+				: '',
+			'tip'      => function_exists( 'pcu_attachment_tip' )
+				? pcu_attachment_tip( $id, pathinfo( $url, PATHINFO_EXTENSION ) )
+				: get_the_title( $id ),
 		);
 	}
 

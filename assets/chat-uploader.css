@@ -1202,11 +1202,13 @@
     color: #fff;
 }
 
-.pcu-viewer-file svg {
-    width: 64px;
-    height: 64px;
+.pcu-viewer-file svg,
+.pcu-viewer-file img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
     stroke-width: 1.4;
-    opacity: .9;
+    opacity: .95;
 }
 
 .pcu-viewer-file span {
@@ -1254,4 +1256,130 @@
     .pcu-emoji-grid {
         grid-template-columns: repeat(7, 1fr);
     }
+}
+
+/* --------------------------------------------------------------------------
+   15. Your own name and photo, on your own messages
+   --------------------------------------------------------------------------
+   You know who you are — the column is pure noise, and on a phone it costs a
+   quarter of the width of every message you send.
+
+   Done here rather than in the templates on purpose. The plugin ships FOUR
+   chat templates with three different shapes for that column (buyer uses
+   `col-3 text-end`, seller uses `col-3` with the alignment on the anchor, and
+   the inbox marks the row by omission), so a regex over the markup would be
+   four fragile edits that a plugin update could silently break. Every one of
+   them agrees on ONE thing: the row carries `.message_sender`. So key off that.
+   -------------------------------------------------------------------------- */
+.chat-list.message_sender .col-3 {
+    display: none;
+}
+
+.chat-list.message_sender .col-9 {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   16. File-type icons
+   --------------------------------------------------------------------------
+   A PDF now looks like a PDF instead of the word "PDF". Same 84x64 box as the
+   photo thumbnails, but `contain`, not `cover` — an icon must not be cropped.
+   -------------------------------------------------------------------------- */
+.pcu-chat-icon {
+    width: 84px;
+    height: 64px;
+    object-fit: contain;
+    padding: 6px;
+    background: #fff;
+    display: block;
+}
+
+.chat-list .pcu-chat-attachments a.pcu-chat-thumb img.pcu-chat-icon {
+    border-radius: 0;
+    width: 84px;
+    height: 64px;
+    object-fit: contain;
+    margin: 0;
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   17. Tooltip
+   --------------------------------------------------------------------------
+   Replaces the browser's `title` bubble, which cannot be styled, cannot hold
+   two lines, and shows up on its own schedule. Dhonu's tooltip: dark card, a
+   little arrow, and it honours the line break.
+
+   Fixed-positioned on <body>, so no ancestor's overflow can clip it.
+   -------------------------------------------------------------------------- */
+.pcu-tip {
+    position: absolute;
+    z-index: 1100;
+    max-width: 260px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    background: #343a40;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    white-space: pre-line;          /* the \n in data-tip becomes a real break */
+    word-break: break-word;
+    pointer-events: none;           /* never eat the hover it is describing */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .12s ease;
+}
+
+.pcu-tip.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* The arrow. Sits under the card by default, and flips to the top when the
+   tooltip has to open downwards for want of room above. */
+.pcu-tip::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    margin-left: -5px;
+    border: 5px solid transparent;
+    border-top-color: #343a40;
+    top: 100%;
+}
+
+.pcu-tip.is-below::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: #343a40;
+}
+
+/* --------------------------------------------------------------------------
+   18. Online / offline dot
+   --------------------------------------------------------------------------
+   On the other person's avatar only — after §15 that is the only avatar left in
+   the thread. The wrapper is sized by the image, so adding it shifts nothing.
+   -------------------------------------------------------------------------- */
+.pcu-avatar {
+    position: relative;
+    display: inline-block;
+    line-height: 0;                 /* no phantom descender gap under the img */
+}
+
+.pcu-dot {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid #fff;         /* separates it from a busy avatar */
+    background: #adb5bd;            /* offline until we hear otherwise */
+    transition: background-color .2s ease;
+}
+
+.pcu-avatar.is-online .pcu-dot {
+    background: #12b76a;
 }

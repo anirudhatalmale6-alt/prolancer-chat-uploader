@@ -51,12 +51,15 @@
 				href: a.url,
 				target: '_blank',
 				rel: 'noopener',
-				title: a.name,
+				// data-tip, NOT title — the browser's title bubble is the thing
+				// we replaced. chat-extras.js draws ours.
+				'data-tip': a.tip || a.name,
 				// Read by the media viewer, exactly as on the server-rendered
 				// markup — so a file that arrives live opens the same way.
 				'data-kind': a.kind || (a.is_image ? 'image' : 'file'),
 				'data-file': a.file || '',
-				'data-poster': a.poster || ''
+				'data-poster': a.poster || '',
+				'data-icon': (a.is_image || a.poster) ? '' : (a.icon || '')
 			});
 
 			// An image shows itself; a video shows the frame the server grabbed
@@ -71,11 +74,15 @@
 					width: 84,
 					height: 64
 				}).appendTo($a);
-			} else {
-				// The extension lives in the filename — the title has had it
-				// stripped, so deriving it from a.name would print the title.
-				var ext = (a.file || '').split('.').pop() || 'file';
-				$('<span/>', { 'class': 'pcu-chat-file' }).text(ext.toUpperCase()).appendTo($a);
+			} else if (a.icon) {
+				// No preview possible — the type icon, same as on a reload.
+				$('<img/>', {
+					'class': 'pcu-chat-icon',
+					src: a.icon,
+					alt: (a.file || '').split('.').pop() || 'file',
+					width: 84,
+					height: 64
+				}).appendTo($a);
 			}
 
 			// A frame from a video looks exactly like a photo without this.
@@ -115,6 +122,9 @@
 		$item.append($row);
 		$box.append($item);
 		scrollBottom($box);
+
+		// chat-extras.js marks up any new avatar and refreshes the online dot.
+		document.dispatchEvent(new CustomEvent('pcu:appended'));
 	}
 
 	function initDashboardChat() {
@@ -242,6 +252,9 @@
 		$item.append($row);
 		$box.append($item);
 		scrollBottom($box);
+
+		// chat-extras.js marks up any new avatar and refreshes the online dot.
+		document.dispatchEvent(new CustomEvent('pcu:appended'));
 	}
 
 	function initServiceChat() {

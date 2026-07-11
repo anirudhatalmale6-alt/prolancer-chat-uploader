@@ -254,6 +254,28 @@ function pcu_enqueue_assets() {
 	);
 
 	wp_localize_script( 'pcu-chat-viewer', 'PCU_VIEWER', array( 'spinner' => pcu_spinner_url() ) );
+
+	// Enter-to-send, tooltips, and the other user's online dot.
+	wp_enqueue_script(
+		'pcu-chat-extras',
+		$uri . '/assets/js/chat-extras.js',
+		array(),
+		pcu_asset_version( $dir . '/assets/js/chat-extras.js' ),
+		true
+	);
+
+	wp_localize_script(
+		'pcu-chat-extras',
+		'PCU_CHAT',
+		array(
+			'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'pcu_presence' ),
+			// How often to say "still here", and how long a user stays "online"
+			// after their last word. The window is comfortably more than the
+			// interval, so one dropped request does not blink someone offline.
+			'everyMs'  => 45000,
+		)
+	);
 }
 add_action( 'wp_enqueue_scripts', 'pcu_enqueue_assets' );
 
@@ -281,7 +303,7 @@ function pcu_spinner_url() {
  * `defer` keeps the script off the critical render path.
  */
 function pcu_defer_script( $tag, $handle ) {
-	$ours = array( 'pcu-chat-uploader', 'pcu-chat-emoji', 'pcu-chat-viewer' );
+	$ours = array( 'pcu-chat-uploader', 'pcu-chat-emoji', 'pcu-chat-viewer', 'pcu-chat-extras' );
 
 	if ( in_array( $handle, $ours, true ) && false === strpos( $tag, ' defer' ) ) {
 		$tag = str_replace( ' src=', ' defer src=', $tag );
@@ -641,6 +663,130 @@ function pcu_poster_on_upload( $attachment_id ) {
 add_action( 'add_attachment', 'pcu_poster_on_upload' );
 
 /**
+ * Online / offline
+ * ----------------------------------------------------------------------------
+ * "Online" means "was doing something on this site in the last couple of
+ * minutes". Every logged-in page view stamps the time, and an open chat keeps
+ * stamping it on a timer so someone reading a long thread does not go grey
+ * while they are plainly there.
+ *
+ * Deliberately not Pusher presence channels, even though Pusher is already
+ * wired up here: presence would report someone as offline the moment they
+ * closed the tab, but it needs an auth endpoint per channel, and it only knows
+ * about users who happen to be on a chat screen. A last-seen stamp is simpler,
+ * survives a page reload, and is right about the thing being asked.
+ */
+function pcu_online_window() {
+	// A user is online if they were seen this recently.
+	return (int) apply_filters( 'pcu_online_window', 2 * MINUTE_IN_SECONDS );
+}
+
+/**
+ * Stamp the current user as seen, on any page they load.
+ */
+function pcu_touch_last_seen() {
+	$uid = get_current_user_id();
+
+	if ( ! $uid ) {
+		return;
+	}
+
+	// Only write when the value would actually change — this runs on every page
+	// load of every logged-in user, and an UPDATE per request would be silly.
+	$last = (int) get_user_meta( $uid, '_pcu_last_seen', true );
+
+	if ( time() - $last > 30 ) {
+		update_user_meta( $uid, '_pcu_last_seen', time() );
+	}
+}
+add_action( 'init', 'pcu_touch_last_seen' );
+
+/**
+ * Is this user online?
+ *
+ * @param int $user_id WP user ID.
+ * @return bool
+ */
+function pcu_user_is_online( $user_id ) {
+	$last = (int) get_user_meta( (int) $user_id, '_pcu_last_seen', true );
+
+	return $last > 0 && ( time() - $last ) < pcu_online_window();
+}
+
+/**
+ * AJAX: "I'm still here — and is the person I'm talking to?"
+ *
+ * The chat sends the OTHER party's profile post ID, which is already in the
+ * page: the composer's send button carries it as data-receiver-id. Mapping that
+ * to a WP user is get_post_field('post_author'), so there is nothing to look up
+ * in the plugin's tables and nothing to keep in step with its four different
+ * chat templates.
+ */
+function pcu_ajax_presence() {
+	check_ajax_referer( 'pcu_presence', 'nonce' );
+
+	if ( ! is_user_logged_in() ) {
+		wp_send_json_error();
+	}
+
+	// The ping itself is what keeps the sender online.
+	update_user_meta( get_current_user_id(), '_pcu_last_seen', time() );
+
+	$profile_id = isset( $_POST['profile_id'] ) ? absint( $_POST['profile_id'] ) : 0;
+	$author     = $profile_id ? (int) get_post_field( 'post_author', $profile_id ) : 0;
+
+	wp_send_json_success(
+		array(
+			'online' => $author ? pcu_user_is_online( $author ) : false,
+		)
+	);
+}
+add_action( 'wp_ajax_pcu_presence', 'pcu_ajax_presence' );
+
+/**
+ * Icon for a non-media file type.
+ * ----------------------------------------------------------------------------
+ * The icons live in assets/icons/ and are NAMED AFTER THE EXTENSION — zip.png,
+ * docx.png — so the filename is the lookup and there is no map to keep in sync.
+ * Adding a type later is dropping a PNG in the folder; nothing here changes.
+ * Anything with no icon of its own falls back to generic.png.
+ *
+ * @param string $ext File extension, any case.
+ * @return string Icon URL.
+ */
+function pcu_file_icon_url( $ext ) {
+	$ext = strtolower( preg_replace( '/[^a-z0-9]/i', '', (string) $ext ) );
+	$dir = get_stylesheet_directory() . '/assets/icons/';
+	$uri = get_stylesheet_directory_uri() . '/assets/icons/';
+
+	if ( '' !== $ext && file_exists( $dir . $ext . '.png' ) ) {
+		return $uri . $ext . '.png';
+	}
+
+	return $uri . 'generic.png';
+}
+
+/**
+ * The tooltip for an attachment: full name, then type and size.
+ *
+ * Two lines, because the file name is the thing that gets truncated in the tile
+ * and the size is what people actually want to know before they click a 40 MB
+ * download. Rendered by our own tooltip, not the browser's title bubble.
+ *
+ * @param int    $id  Attachment ID.
+ * @param string $ext Extension.
+ * @return string
+ */
+function pcu_attachment_tip( $id, $ext ) {
+	$file = get_attached_file( $id );
+	$size = ( $file && file_exists( $file ) ) ? size_format( filesize( $file ), 0 ) : '';
+
+	$line2 = trim( strtoupper( $ext ) . ( $size ? ' · ' . $size : '' ) );
+
+	return wp_basename( (string) wp_get_attachment_url( $id ) ) . "\n" . $line2;
+}
+
+/**
  * Parse the stored attachment_id into a list of IDs.
  *
  * Accepts both the new "12,13,14" and the legacy single "12".
@@ -722,13 +868,19 @@ function pcu_render_attachments( $stored ) {
 		// The viewer reads these: what to render the file AS, the real filename
 		// to hand the browser's save dialogue (the post title has had its
 		// extension stripped), and the frame to show before a video is played.
+		//
+		// data-tip, NOT title: the browser's own title bubble cannot be styled
+		// and cannot hold two lines. chat-extras.js draws ours instead.
+		$icon = $thumb ? '' : pcu_file_icon_url( $ext );
+
 		printf(
-			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" title="%s" data-kind="%s" data-file="%s"%s>',
+			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" data-tip="%s" data-kind="%s" data-file="%s"%s%s>',
 			esc_url( $url ),
-			esc_attr( $name ),
+			esc_attr( pcu_attachment_tip( $id, $ext ) ),
 			esc_attr( $kind ),
 			esc_attr( wp_basename( $url ) ),
-			$poster ? sprintf( ' data-poster="%s"', esc_url( $poster ) ) : ''
+			$poster ? sprintf( ' data-poster="%s"', esc_url( $poster ) ) : '',
+			$icon ? sprintf( ' data-icon="%s"', esc_url( $icon ) ) : ''
 		);
 
 		if ( $thumb ) {
@@ -739,7 +891,12 @@ function pcu_render_attachments( $stored ) {
 				esc_attr( $name )
 			);
 		} else {
-			printf( '<span class="pcu-chat-file">%s</span>', esc_html( $ext ) );
+			// No preview possible — show what kind of file it is.
+			printf(
+				'<img class="pcu-chat-icon" src="%s" alt="%s" width="84" height="64" loading="lazy">',
+				esc_url( $icon ),
+				esc_attr( $ext )
+			);
 		}
 
 		// A frame from a video looks exactly like a photo without this.

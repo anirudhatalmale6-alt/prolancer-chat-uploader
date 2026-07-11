@@ -220,14 +220,20 @@ def main():
         check('left arrow key goes back',
               page.locator('.pcu-viewer-count').inner_text() == '2 / 5')
 
-        # #3 is the PDF: no preview, a file tile instead.
+        # #3 is the zip: no preview, a file tile instead. The tile now carries
+        # the SAME type icon the chat shows, so a zip looks like a zip in both
+        # places — but it must still not be treated as previewable media.
         page.keyboard.press('ArrowRight')
         check('non-media shows a file tile, no preview',
               page.locator('.pcu-viewer-file').count() == 1
-              and page.locator('.pcu-viewer-stage img').count() == 0)
+              # the icon lives INSIDE the tile; no media <img> on the stage
+              and page.locator('.pcu-viewer-stage > img').count() == 0)
         check('file tile names the type',
-              'PDF' in page.locator('.pcu-viewer-file').inner_text(),
+              'ZIP' in page.locator('.pcu-viewer-file').inner_text(),
               page.locator('.pcu-viewer-file').inner_text())
+        check('file tile shows the type icon',
+              'zip.png' in (page.locator('.pcu-viewer-file img').get_attribute('src') or ''),
+              page.locator('.pcu-viewer-file img').get_attribute('src') or 'none')
 
         # #4 is the video: it must actually play, and it must carry the frame
         # ffmpeg grabbed from it rather than opening as a black box.
@@ -265,7 +271,7 @@ def main():
         check('video plays in the viewer', playing)
 
         # Wrap around from the last item back to the first.
-        page.keyboard.press('ArrowRight')          # 5/5, the zip
+        page.keyboard.press('ArrowRight')          # 5/5, the last image
         page.keyboard.press('ArrowRight')          # wraps
         check('wraps past the last file',
               page.locator('.pcu-viewer-count').inner_text() == '1 / 5')
@@ -279,7 +285,7 @@ def main():
               got.suggested_filename)
 
         # A playing video must not keep playing after the viewer closes.
-        page.keyboard.press('ArrowLeft')           # back to the zip
+        page.keyboard.press('ArrowLeft')           # 5/5
         page.keyboard.press('ArrowLeft')           # the video
         page.wait_for_timeout(300)
         page.keyboard.press('Escape')

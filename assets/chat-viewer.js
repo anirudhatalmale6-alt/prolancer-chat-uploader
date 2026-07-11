@@ -153,7 +153,7 @@
         var node;
         if (item.kind === 'image') {
             node = document.createElement('img');
-            node.alt = item.name;
+            node.alt = item.file;                    // the filename, not the tooltip
 
             loading(true);
             node.addEventListener('load', function () { loading(false); });
@@ -200,10 +200,23 @@
                 });
             }
         } else {
+            // No preview possible. Show the SAME type icon the chat tile shows,
+            // so a PDF looks like a PDF in both places.
             node = document.createElement('div');
             node.className = 'pcu-viewer-file';
-            node.innerHTML = svg(ICON.file) +
-                '<span>' + (item.file.split('.').pop() || 'file').toUpperCase() + '</span>';
+
+            if (item.icon) {
+                var art = document.createElement('img');
+                art.src = item.icon;
+                art.alt = '';
+                node.appendChild(art);
+            } else {
+                node.innerHTML = svg(ICON.file);
+            }
+
+            var label = document.createElement('span');
+            label.textContent = (item.file.split('.').pop() || 'file').toUpperCase();
+            node.appendChild(label);
         }
 
         node.className = (node.className ? node.className + ' ' : '') + 'pcu-viewer-media';
@@ -264,8 +277,9 @@
             url:    a.getAttribute('href'),
             kind:   a.getAttribute('data-kind') || 'file',
             file:   a.getAttribute('data-file') || '',
-            name:   a.getAttribute('title') || '',
-            poster: a.getAttribute('data-poster') || ''
+            name:   a.getAttribute('data-tip') || '',
+            poster: a.getAttribute('data-poster') || '',
+            icon:   a.getAttribute('data-icon') || ''
         };
     }
 
