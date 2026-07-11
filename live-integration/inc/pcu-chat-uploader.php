@@ -329,7 +329,7 @@ function pcu_render_modal() {
 
 						<div class="pcu-dz-title"><?php esc_html_e( 'Drop files here or click to upload.', 'prolancer' ); ?></div>
 						<div class="pcu-dz-sub"><?php esc_html_e( 'You can drag files here, or browse files via the button below.', 'prolancer' ); ?></div>
-						<button type="button" class="pcu-dz-browse"><?php esc_html_e( 'Browse Files', 'prolancer' ); ?></button>
+						<button type="button" class="pcu-dz-browse"><?php esc_html_e( 'Browse files', 'prolancer' ); ?></button>
 					</div>
 
 					<?php

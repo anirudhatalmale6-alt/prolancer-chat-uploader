@@ -39,7 +39,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(400)
 
     ok_browse = expect_chooser(
-        page, lambda: page.click('.pcu-dz-browse'), 'Browse Files button')
+        page, lambda: page.click('.pcu-dz-browse'), 'Browse files button')
 
     # Reopen cleanly and try the dropzone body itself
     page.keyboard.press('Escape')
