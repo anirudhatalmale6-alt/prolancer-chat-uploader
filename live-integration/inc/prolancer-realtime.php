@@ -229,11 +229,13 @@ function prolancer_realtime_push() {
 	$attach_raw  = isset( $_POST['attachment_id'] ) ? sanitize_text_field( wp_unslash( $_POST['attachment_id'] ) ) : '';
 	$message     = isset( $_POST['message'] ) ? sanitize_text_field( wp_unslash( $_POST['message'] ) ) : '';
 
-	if ( '' === $message ) {
+	$attachments = prolancer_realtime_attachments( $attach_raw );
+
+	// Files on their own are a valid message — the Upload button sends them with
+	// no text typed. Reject only when there is neither text nor an attachment.
+	if ( '' === $message && empty( $attachments ) ) {
 		wp_send_json_error( array( 'message' => 'Empty' ) );
 	}
-
-	$attachments = prolancer_realtime_attachments( $attach_raw );
 
 	// Kept for backward compatibility with anything still reading a single URL.
 	$attachment_url = ! empty( $attachments ) ? $attachments[0]['url'] : '';

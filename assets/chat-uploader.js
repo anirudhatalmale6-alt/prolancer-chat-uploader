@@ -17,12 +17,12 @@
     var CFG = window.PCU_CONFIG || {};
 
     var settings = {
-        uploadUrl:     CFG.uploadUrl     || 'upload.php',
+        uploadUrl:     CFG.uploadUrl     || '/wp-admin/admin-ajax.php',
+        action:        CFG.action        || 'prolancer_ajax_upload_message_attachment',
         maxFilesize:   CFG.maxFilesize   || 10,          // MB, per file
         maxFiles:      CFG.maxFiles      || 10,
         parallel:      CFG.parallel      || 3,           // concurrent uploads
-        acceptedFiles: CFG.acceptedFiles || 'image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip',
-        params:        CFG.params        || {}           // action, nonce, …
+        acceptedFiles: CFG.acceptedFiles || 'image/*,.pdf,.doc,.docx,.ppt,.pptx'
     };
 
     var MB = 1024 * 1024;
@@ -247,6 +247,16 @@
         var queue = [];                  // the staged files
         var seq = 0;
 
+        // --- the plugin's existing composer ---------------------------------
+        // The chat form, its hidden id-carrier, and the plugin's original file
+        // input. That input stays in the DOM (CSS hides it) because it holds the
+        // post_id + nonce the upload endpoint needs; nothing listens to its
+        // change event any more, so the plugin's old uploader — and its
+        // "Successfully uploaded!" popup — never fires.
+        var form = document.querySelector('#send-service-message-form, #send-project-message-form');
+        var legacyInput = document.getElementById('upload-message-attachments');
+        var idField = form ? form.querySelector('.attachment-id') : null;
+
         var modalNode = root.querySelector('.pcu-modal');
         var dialog    = root.querySelector('.pcu-modal-dialog');
         var dropzone  = root.querySelector('.pcu-dropzone');
@@ -261,8 +271,14 @@
         var countEl   = attachBtn ? attachBtn.querySelector('.pcu-attach-count') : null;
 
         var modal = makeModal(modalNode);
+
+        // Only the file list scrolls — NOT the modal body. The dropzone above it
+        // must stay put instead of scrolling out of view as files are added.
+        var scrollWrap = root.querySelector('.pcu-scroll-wrap');
+        var listScroll = root.querySelector('.pcu-list-scroll');
+
         var sb = attachScrollbar(
-            body,
+            listScroll,
             root.querySelector('.pcu-sb-track'),
             root.querySelector('.pcu-sb-thumb')
         );
@@ -274,7 +290,7 @@
         }
 
         function syncUi() {
-            listEl.classList.toggle('is-visible', queue.length > 0);
+            scrollWrap.classList.toggle('is-visible', queue.length > 0);
             uploadBtn.disabled = uploading || pending().length === 0;
 
             if (countEl) {
@@ -320,7 +336,7 @@
             // Reset, so picking the same file twice in a row still fires change.
             input.value = '';
 
-            body.scrollTop = body.scrollHeight;
+            listScroll.scrollTop = listScroll.scrollHeight;
             syncUi();
         }
 
@@ -382,15 +398,25 @@
 
         // ------------------------------------------------------------- upload
 
-        /** Upload one file. Resolves either way — a failure marks the row. */
+        /**
+         * Upload one file through the PLUGIN's own endpoint
+         * (prolancer_ajax_upload_message_attachment).
+         *
+         * post_id and nonce are read straight off the plugin's file input, which
+         * is still rendered (CSS keeps it hidden) precisely so we don't have to
+         * duplicate them. Field name must be `attachment` — that is what the
+         * endpoint's media_handle_upload() call looks for.
+         *
+         * Resolves either way; a failure marks the row rather than throwing.
+         */
         function uploadOne(item) {
             return new Promise(function (resolve) {
                 var form = new FormData();
 
-                Object.keys(settings.params).forEach(function (k) {
-                    form.append(k, settings.params[k]);
-                });
-                form.append('file', item.file, item.file.name);
+                form.append('action', settings.action);
+                form.append('nonce', legacyInput ? legacyInput.getAttribute('data-nonce') : '');
+                form.append('post_id', legacyInput ? legacyInput.getAttribute('data-post-id') : '');
+                form.append('attachment', item.file, item.file.name);
 
                 var xhr = new XMLHttpRequest();
                 item.xhr = xhr;
@@ -407,12 +433,23 @@
                     var res = {};
                     try { res = JSON.parse(xhr.responseText); } catch (e) { /* noop */ }
 
-                    // WordPress replies {success:bool, data:{…}}; a plain endpoint
-                    // puts the fields at the top level. Accept either.
+                    // WordPress replies {success:bool, data:{…}}.
                     var payload = res.data || res;
 
                     if (xhr.status < 200 || xhr.status >= 300 || res.success === false) {
-                        fail(item, (payload && payload.error) || 'Upload failed.');
+                        fail(item, (payload && payload.message) || 'Upload failed.');
+                        resolve();
+                        return;
+                    }
+
+                    // The plugin endpoint does `if ($attachment_id)` — and a
+                    // WP_Error object is truthy, so a genuinely failed upload can
+                    // come back reported as success with a non-numeric id. Check
+                    // it really is an attachment id before trusting it.
+                    var id = parseInt(payload.id, 10);
+
+                    if (!id) {
+                        fail(item, 'Upload failed on the server.');
                         resolve();
                         return;
                     }
@@ -420,13 +457,11 @@
                     item.done = true;
                     item.row.classList.remove('is-uploading');
                     item.uploaded = {
-                        name:  item.file.name,
-                        type:  item.file.type,
-                        url:   payload.url   || null,
-                        thumb: payload.thumb || null,
-                        id:    payload.id    || null,
-                        // Already-decoded preview, so the chat thumbnail paints
-                        // immediately instead of popping in.
+                        id:   id,
+                        name: item.file.name,
+                        type: item.file.type,
+                        // Already-decoded preview, so the staged thumbnail paints
+                        // immediately instead of popping in and shifting the row.
                         preview: item.preview || null
                     };
                     resolve();
@@ -489,19 +524,54 @@
                 var done = queue.filter(function (it) { return it.done; });
                 if (!done.length) { return; }   // all failed — keep the modal up
 
-                // NO "Successfully uploaded!" dialog. Straight to the chat.
+                // Upload SENDS. The files go into the chat and out to the other
+                // user immediately — not parked in the composer waiting for a
+                // second click. No "Successfully uploaded!" dialog either.
+                var ids = done.map(function (it) { return it.uploaded.id; });
+
+                if (idField) {
+                    // Several ids in one message: the column is varchar, and the
+                    // plugin saves it with sanitize_text_field(), so a
+                    // comma-separated list round-trips as-is.
+                    idField.value = ids.join(',');
+                }
+
                 window.PCU.emit('pcu:uploaded', done.map(function (it) {
                     return it.uploaded;
                 }));
 
                 done.forEach(removeItem);
+                syncUi();
+
+                send();   // no-op in the demo (no chat form)
 
                 // Only close when everything went through; if some rows failed,
-                // stay open so the user can see which and retry.
+                // stay open so the user can see which ones and retry.
                 if (!queue.length) { modal.hide(); }
-                syncUi();
             });
         });
+
+        // --------------------------------------------------------- sending
+
+        /**
+         * Fire the composer's own Send button.
+         *
+         * The chat already has a send path — the plugin's handler, or the
+         * realtime one that replaces it. Both read the attachment ids out of the
+         * hidden .attachment-id field, store the message, render it and push it
+         * to the other user. Clicking that button reuses all of it, instead of
+         * duplicating the send logic (and its nonces) in here.
+         */
+        function send() {
+            var sendBtn = form && form.querySelector(
+                '.send-service-message, .send-project-message');
+
+            if (!sendBtn) { return; }
+
+            // A native click bubbles to the delegated jQuery handler just like a
+            // real one, so whichever sender is active picks it up.
+            sendBtn.click();
+        }
 
         // ------------------------------------------------- drag, drop, browse
 
@@ -514,10 +584,20 @@
             input.click();
         }
 
+        // The input lives OUTSIDE the dropzone (see the markup). If it were a
+        // child, the synthetic click from input.click() would bubble back up
+        // into this very handler, which would call input.click() again — and on
+        // that re-entrancy Chrome silently refuses to open the file dialog.
+        // Belt and braces: stop its click escaping either way.
+        input.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
         dropzone.addEventListener('click', openPicker);
+
         if (browse) {
             browse.addEventListener('click', function (e) {
-                e.stopPropagation();   // the dropzone click would fire too
+                e.stopPropagation();   // otherwise the dropzone handler fires too
                 openPicker(e);
             });
         }

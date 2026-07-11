@@ -225,32 +225,44 @@ function pcu_render_modal() {
 					<h5 class="pcu-modal-title" id="pcu-title"><?php esc_html_e( 'Attach files', 'prolancer' ); ?></h5>
 				</div>
 
-				<?php // Fixed height + styled scroll: the modal never grows as files pile up. ?>
-				<div class="pcu-scroll-wrap">
-					<div class="pcu-modal-body pcu-scroll">
+				<div class="pcu-modal-body">
 
-						<div class="pcu-dropzone">
-							<input type="file" class="pcu-input" multiple hidden
-								   accept="image/*,.pdf,.doc,.docx,.ppt,.pptx">
+					<?php
+					// OUTSIDE .pcu-dropzone on purpose. As a child of the dropzone,
+					// the synthetic click from input.click() bubbles straight back
+					// into the dropzone's own click handler, which calls
+					// input.click() again — Chrome sees the re-entrancy and simply
+					// never opens the file dialog.
+					?>
+					<input type="file" class="pcu-input" multiple hidden
+						   accept="image/*,.pdf,.doc,.docx,.ppt,.pptx">
 
-							<div class="pcu-dz-icon">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-									 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-									<path d="M12 16V9M9 12l3-3 3 3"/>
-								</svg>
-							</div>
-
-							<div class="pcu-dz-title"><?php esc_html_e( 'Drop files here or click to upload.', 'prolancer' ); ?></div>
-							<div class="pcu-dz-sub"><?php esc_html_e( 'You can drag images here, or browse files via the button below.', 'prolancer' ); ?></div>
-							<button type="button" class="pcu-dz-browse"><?php esc_html_e( 'Browse Images', 'prolancer' ); ?></button>
+					<div class="pcu-dropzone">
+						<div class="pcu-dz-icon">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+								 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+								<path d="M12 16V9M9 12l3-3 3 3"/>
+							</svg>
 						</div>
 
-						<div class="pcu-file-list"></div>
+						<div class="pcu-dz-title"><?php esc_html_e( 'Drop files here or click to upload.', 'prolancer' ); ?></div>
+						<div class="pcu-dz-sub"><?php esc_html_e( 'You can drag files here, or browse files via the button below.', 'prolancer' ); ?></div>
+						<button type="button" class="pcu-dz-browse"><?php esc_html_e( 'Browse Files', 'prolancer' ); ?></button>
 					</div>
 
-					<div class="pcu-sb-track is-idle" aria-hidden="true">
-						<div class="pcu-sb-thumb"></div>
+					<?php
+					// ONLY the file list scrolls. The dropzone above stays put, so
+					// it never scrolls out of reach as files pile up.
+					?>
+					<div class="pcu-scroll-wrap">
+						<div class="pcu-list-scroll pcu-scroll">
+							<div class="pcu-file-list"></div>
+						</div>
+
+						<div class="pcu-sb-track is-idle" aria-hidden="true">
+							<div class="pcu-sb-thumb"></div>
+						</div>
 					</div>
 				</div>
 

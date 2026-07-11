@@ -252,14 +252,16 @@
 			var $form = $('#send-service-message-form');
 			var $ta = $form.find('textarea[name="message"]');
 			var msg = $.trim($ta.val());
-			if (!msg || $btn.hasClass('sending')) {
+			var attachmentId = $form.find('.attachment-id').val() || 0;
+			// Files alone are a valid message — the Upload button sends them
+			// with no text typed. Only bail when there is neither.
+			if ((!msg && !attachmentId) || $btn.hasClass('sending')) {
 				return;
 			}
 			var sender = $btn.attr('data-sender-id');
 			var receiver = $btn.attr('data-receiver-id');
 			var order = $btn.attr('data-order-id');
 			var nonce = $btn.attr('data-nonce');
-			var attachmentId = $form.find('.attachment-id').val() || 0;
 			$btn.addClass('sending');
 			$form.addClass('processing-loader');
 

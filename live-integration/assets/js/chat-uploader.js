@@ -271,8 +271,14 @@
         var countEl   = attachBtn ? attachBtn.querySelector('.pcu-attach-count') : null;
 
         var modal = makeModal(modalNode);
+
+        // Only the file list scrolls — NOT the modal body. The dropzone above it
+        // must stay put instead of scrolling out of view as files are added.
+        var scrollWrap = root.querySelector('.pcu-scroll-wrap');
+        var listScroll = root.querySelector('.pcu-list-scroll');
+
         var sb = attachScrollbar(
-            body,
+            listScroll,
             root.querySelector('.pcu-sb-track'),
             root.querySelector('.pcu-sb-thumb')
         );
@@ -284,7 +290,7 @@
         }
 
         function syncUi() {
-            listEl.classList.toggle('is-visible', queue.length > 0);
+            scrollWrap.classList.toggle('is-visible', queue.length > 0);
             uploadBtn.disabled = uploading || pending().length === 0;
 
             if (countEl) {
@@ -330,7 +336,7 @@
             // Reset, so picking the same file twice in a row still fires change.
             input.value = '';
 
-            body.scrollTop = body.scrollHeight;
+            listScroll.scrollTop = listScroll.scrollHeight;
             syncUi();
         }
 
@@ -518,118 +524,58 @@
                 var done = queue.filter(function (it) { return it.done; });
                 if (!done.length) { return; }   // all failed — keep the modal up
 
-                // NO "Successfully uploaded!" dialog. The files go straight to
-                // the composer, ready to send with the message.
-                done.forEach(function (it) { stage(it.uploaded); });
+                // Upload SENDS. The files go into the chat and out to the other
+                // user immediately — not parked in the composer waiting for a
+                // second click. No "Successfully uploaded!" dialog either.
+                var ids = done.map(function (it) { return it.uploaded.id; });
+
+                if (idField) {
+                    // Several ids in one message: the column is varchar, and the
+                    // plugin saves it with sanitize_text_field(), so a
+                    // comma-separated list round-trips as-is.
+                    idField.value = ids.join(',');
+                }
 
                 window.PCU.emit('pcu:uploaded', done.map(function (it) {
                     return it.uploaded;
                 }));
 
                 done.forEach(removeItem);
+                syncUi();
+
+                // Hand off to the normal send path, so the message is stored,
+                // rendered in the chat and pushed live to the other side exactly
+                // as a typed message would be. Nothing about sending is
+                // reimplemented here.
+                send();
 
                 // Only close when everything went through; if some rows failed,
-                // stay open so the user can see which and retry.
+                // stay open so the user can see which ones and retry.
                 if (!queue.length) { modal.hide(); }
-                syncUi();
             });
         });
 
-        // ------------------------------------------- staged attachments strip
-
-        // Files that have been uploaded but not yet SENT. They sit in the
-        // composer, and their ids ride along with the next message.
-        var staged = [];
-        var stagedEl = null;
+        // --------------------------------------------------------- sending
 
         /**
-         * Write the staged ids into the plugin's hidden field as a
-         * comma-separated list.
+         * Fire the composer's own Send button.
          *
-         * This is the whole trick behind multiple attachments per message:
-         * `attachment_id` is varchar(300) and the plugin saves it with
-         * sanitize_text_field(), so "12,13,14" stores verbatim. A legacy row
-         * holding a single "12" still parses. No schema change.
+         * The chat already has a send path — the plugin's handler, or the
+         * realtime one that replaces it. Both read the attachment ids out of the
+         * hidden .attachment-id field, store the message, render it and push it
+         * to the other user. Clicking that button reuses all of it, instead of
+         * duplicating the send logic (and its nonces) in here.
          */
-        function writeIds() {
-            if (!idField) { return; }
+        function send() {
+            var sendBtn = form && form.querySelector(
+                '.send-service-message, .send-project-message');
 
-            idField.value = staged.map(function (a) { return a.id; }).join(',');
+            if (!sendBtn) { return; }
+
+            // A native click bubbles to the delegated jQuery handler just like a
+            // real one, so whichever sender is active picks it up.
+            sendBtn.click();
         }
-
-        function ensureStagedEl() {
-            if (stagedEl || !form) { return stagedEl; }
-
-            stagedEl = el('div', 'pcu-staged');
-            // Before the send button, so it reads as "these go with this message".
-            var sendBtn = form.querySelector('.send-service-message, .send-project-message');
-
-            if (sendBtn) {
-                form.insertBefore(stagedEl, sendBtn);
-            } else {
-                form.appendChild(stagedEl);
-            }
-            return stagedEl;
-        }
-
-        function renderStaged() {
-            var host = ensureStagedEl();
-            if (!host) { return; }
-
-            host.innerHTML = '';
-            host.classList.toggle('is-visible', staged.length > 0);
-
-            staged.forEach(function (a) {
-                var tile = el('div', 'pcu-staged-item');
-
-                if (a.preview) {
-                    var img = new Image();
-                    img.src = a.preview;
-                    img.alt = a.name;
-                    img.width = 56;
-                    img.height = 44;
-                    tile.appendChild(img);
-                } else {
-                    var ic = el('span', 'pcu-staged-file');
-                    ic.textContent = ext(a.name);
-                    tile.appendChild(ic);
-                }
-
-                var cap = el('span', 'pcu-staged-name');
-                cap.textContent = a.name;
-                tile.appendChild(cap);
-
-                var rm = el('button', 'pcu-staged-remove', ICON_X);
-                rm.type = 'button';
-                rm.setAttribute('aria-label', 'Remove ' + a.name);
-                rm.addEventListener('click', function () {
-                    staged = staged.filter(function (s) { return s.id !== a.id; });
-                    writeIds();
-                    renderStaged();
-                });
-                tile.appendChild(rm);
-
-                host.appendChild(tile);
-            });
-        }
-
-        function stage(attachment) {
-            staged.push(attachment);
-            writeIds();
-            renderStaged();
-        }
-
-        // Once the message is sent, its attachments belong to it — clear the
-        // strip so they don't ride along with the NEXT message as well.
-        //
-        // Two senders exist. The plugin's own handler does location.reload(), so
-        // the strip disappears by itself. The realtime handler appends in place
-        // and fires this event instead.
-        document.addEventListener('pcu:sent', function () {
-            staged = [];
-            if (idField) { idField.value = ''; }
-            renderStaged();
-        });
 
         // ------------------------------------------------- drag, drop, browse
 
@@ -642,10 +588,20 @@
             input.click();
         }
 
+        // The input lives OUTSIDE the dropzone (see the markup). If it were a
+        // child, the synthetic click from input.click() would bubble back up
+        // into this very handler, which would call input.click() again — and on
+        // that re-entrancy Chrome silently refuses to open the file dialog.
+        // Belt and braces: stop its click escaping either way.
+        input.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
         dropzone.addEventListener('click', openPicker);
+
         if (browse) {
             browse.addEventListener('click', function (e) {
-                e.stopPropagation();   // the dropzone click would fire too
+                e.stopPropagation();   // otherwise the dropzone handler fires too
                 openPicker(e);
             });
         }

@@ -127,14 +127,15 @@
     flex: 0 0 auto;
 }
 
-/* The body is the only part that scrolls. The height ceiling lives on
-   .pcu-scroll-wrap (see section 3) so the scrollbar track can span it. */
+/* The body does NOT scroll. The dropzone must stay put, so only the file list
+   below it scrolls (see .pcu-scroll-wrap in section 3). */
 .pcu-modal-body {
     padding: 20px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
     flex: 1 1 auto;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* --------------------------------------------------------------------------
@@ -167,14 +168,29 @@
     display: none;
 }
 
-/* Wrapper is the positioning context. The track is a SIBLING of the scroller,
-   not a child — a child would scroll away with the content. */
+/* Wraps ONLY the file list — this is the one region that scrolls. Fixed
+   ceiling, so the modal never grows however many files are added.
+   The track is a SIBLING of the scroller, not a child: as a child it would
+   scroll away with the content. */
 .pcu-scroll-wrap {
     position: relative;
     display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(38vh, 300px);
+    margin-top: 18px;
+}
+
+/* Empty list -> no empty box taking up space. */
+.pcu-scroll-wrap:not(.is-visible) {
+    display: none;
+}
+
+.pcu-list-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: min(58vh, 460px);   /* fixed ceiling: the modal never grows */
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .pcu-sb-track {
@@ -292,15 +308,9 @@
    5. File list — thumbnail, name, size, remove
    -------------------------------------------------------------------------- */
 .pcu-file-list {
-    margin-top: 18px;
     border: 1px solid var(--pcu-border);
     border-radius: var(--pcu-radius);
     overflow: hidden;
-    display: none;
-}
-
-.pcu-file-list.is-visible {
-    display: block;
 }
 
 .pcu-file-row {
@@ -564,9 +574,10 @@
         height: 100%;
     }
 
-    /* Header + footer are ~130px; let the scroller take whatever is left. */
+    /* Let the list take whatever height is left on a phone. */
     .pcu-scroll-wrap {
         max-height: none;
+        flex: 1 1 auto;
     }
 
     .pcu-dropzone {

@@ -58,15 +58,18 @@ with sync_playwright() as p:
     print('Rows:', rows, '| Upload enabled with files:', upload_enabled_after)
 
     # 4. Body must scroll, not grow
-    box = page.locator('.pcu-modal-body').bounding_box()
+    # Only the FILE LIST scrolls now — the dropzone above it must stay put.
+    box = page.locator('.pcu-list-scroll').bounding_box()
     metrics = page.evaluate("""() => {
-        const b = document.querySelector('.pcu-modal-body');
+        const b = document.querySelector('.pcu-list-scroll');
+        const dz = document.querySelector('.pcu-dropzone').getBoundingClientRect();
         return {clientH: b.clientHeight, scrollH: b.scrollHeight,
-                scrollable: b.scrollHeight > b.clientHeight};
+                scrollable: b.scrollHeight > b.clientHeight,
+                dropzoneTop: Math.round(dz.top)};
     }""")
-    print('Modal body height:', round(box['height']), '| metrics:', metrics)
+    print('List scroller height:', round(box['height']), '| metrics:', metrics)
 
-    page.evaluate("document.querySelector('.pcu-modal-body').scrollTop = 9999")
+    page.evaluate("document.querySelector('.pcu-list-scroll').scrollTop = 9999")
     page.wait_for_timeout(300)
     shot(page, '04-scrolled-fixed-height.png')
 
@@ -76,7 +79,9 @@ with sync_playwright() as p:
     print('Rows after remove:', page.locator('.pcu-file-row').count())
 
     # 6. Upload — spinner shows, then files land in the chat, no success dialog
-    page.locator('.pcu-modal-body').evaluate("b => b.scrollTop = 0")
+    page.locator('.pcu-list-scroll').evaluate("b => b.scrollTop = 0")
+    dz_after = page.evaluate("Math.round(document.querySelector('.pcu-dropzone').getBoundingClientRect().top)")
+    print('Dropzone still in place after scrolling list:', dz_after)
     page.click('.pcu-btn-upload')
     page.wait_for_timeout(350)
     shot(page, '05-uploading-spinner.png')

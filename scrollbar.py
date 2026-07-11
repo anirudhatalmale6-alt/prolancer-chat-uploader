@@ -29,7 +29,7 @@ with sync_playwright() as p:
 
     def state():
         return page.evaluate("""() => {
-            const s = document.querySelector('.pcu-modal-body');
+            const s = document.querySelector('.pcu-list-scroll');
             const t = document.querySelector('.pcu-sb-track');
             const th = document.querySelector('.pcu-sb-thumb');
             const cs = getComputedStyle(th);
@@ -52,7 +52,7 @@ with sync_playwright() as p:
           % (s['trackH'], s['thumbH'], s['thumbTop'], s['scrollTop']))
 
     # Scroll to the bottom — thumb must land exactly at the end of the track
-    page.evaluate("document.querySelector('.pcu-modal-body').scrollTop = 99999")
+    page.evaluate("document.querySelector('.pcu-list-scroll').scrollTop = 99999")
     page.wait_for_timeout(300)
     s2 = state()
     end = s2['trackH'] - s2['thumbH']

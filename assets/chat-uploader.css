@@ -127,14 +127,15 @@
     flex: 0 0 auto;
 }
 
-/* The body is the only part that scrolls. The height ceiling lives on
-   .pcu-scroll-wrap (see section 3) so the scrollbar track can span it. */
+/* The body does NOT scroll. The dropzone must stay put, so only the file list
+   below it scrolls (see .pcu-scroll-wrap in section 3). */
 .pcu-modal-body {
     padding: 20px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
     flex: 1 1 auto;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* --------------------------------------------------------------------------
@@ -167,14 +168,29 @@
     display: none;
 }
 
-/* Wrapper is the positioning context. The track is a SIBLING of the scroller,
-   not a child — a child would scroll away with the content. */
+/* Wraps ONLY the file list — this is the one region that scrolls. Fixed
+   ceiling, so the modal never grows however many files are added.
+   The track is a SIBLING of the scroller, not a child: as a child it would
+   scroll away with the content. */
 .pcu-scroll-wrap {
     position: relative;
     display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(38vh, 300px);
+    margin-top: 18px;
+}
+
+/* Empty list -> no empty box taking up space. */
+.pcu-scroll-wrap:not(.is-visible) {
+    display: none;
+}
+
+.pcu-list-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: min(58vh, 460px);   /* fixed ceiling: the modal never grows */
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .pcu-sb-track {
@@ -292,15 +308,9 @@
    5. File list — thumbnail, name, size, remove
    -------------------------------------------------------------------------- */
 .pcu-file-list {
-    margin-top: 18px;
     border: 1px solid var(--pcu-border);
     border-radius: var(--pcu-radius);
     overflow: hidden;
-    display: none;
-}
-
-.pcu-file-list.is-visible {
-    display: block;
 }
 
 .pcu-file-row {
@@ -564,9 +574,10 @@
         height: 100%;
     }
 
-    /* Header + footer are ~130px; let the scroller take whatever is left. */
+    /* Let the list take whatever height is left on a phone. */
     .pcu-scroll-wrap {
         max-height: none;
+        flex: 1 1 auto;
     }
 
     .pcu-dropzone {
@@ -612,4 +623,109 @@
         flex: 1 1 0;
         justify-content: center;
     }
+}
+
+/* --------------------------------------------------------------------------
+   10. Integration with the ProLancer chat composer
+   -------------------------------------------------------------------------- */
+
+/* The plugin's original file input. It stays in the DOM because it carries the
+   post_id and nonce the upload endpoint needs — the JS reads them off it — but
+   the user never sees it again.
+
+   Hidden in CSS, not by JS: hiding it after load would collapse its box and
+   shove the Send button upwards, which is exactly the shifting-on-load problem
+   we're required to avoid. */
+#upload-message-attachments {
+    display: none !important;
+}
+
+/* Files uploaded but not yet sent, shown in the composer. */
+.pcu-staged {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.pcu-staged.is-visible {
+    display: flex;
+}
+
+.pcu-staged-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 30px 6px 6px;
+    border: 1px solid var(--pcu-border);
+    border-radius: 8px;
+    background: #fff;
+    max-width: 220px;
+}
+
+.pcu-staged-item img {
+    width: 56px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 5px;
+    display: block;
+    flex: 0 0 auto;
+}
+
+.pcu-staged-file {
+    width: 56px;
+    height: 44px;
+    border-radius: 5px;
+    background: #f7f8fb;
+    color: var(--pcu-muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.pcu-staged-name {
+    font-size: 12px;
+    color: var(--pcu-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pcu-staged-remove {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--pcu-danger);
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pcu-staged-remove:hover {
+    background: #fdeaed;
+}
+
+.pcu-staged-remove svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* The attach icon sits inline in the composer, before Send. */
+#send-service-message-form .pcu-attach-btn,
+#send-project-message-form .pcu-attach-btn {
+    margin: 12px 10px 12px 0;
+    vertical-align: middle;
 }
