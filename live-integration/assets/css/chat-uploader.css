@@ -1160,6 +1160,34 @@
     pointer-events: none;
 }
 
+/* The site's own spinner, while the media loads.
+
+   Same gif the rest of the site uses (the plugin's images/loader.gif, which its
+   dashboard.css points .processing-loader at) — referenced, not copied, so
+   restyling that one file restyles every loader on the site including this one.
+
+   It sits ABOVE the stage: the browser's own spinner lives inside a <video>'s
+   default controls and cannot be styled, so the viewer withholds those controls
+   until the video can play. No controls, no browser spinner — just this. */
+.pcu-viewer-loader {
+    position: absolute;
+    inset: 48px 0 56px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;           /* never in the way of a click */
+    z-index: 3;
+}
+
+.pcu-viewer.is-loading .pcu-viewer-loader {
+    display: flex;
+}
+
+.pcu-viewer-loader img {
+    width: 64px;
+    height: 64px;
+}
+
 /* No preview for this type — show what it is instead of a broken image. */
 .pcu-viewer-file {
     display: flex;

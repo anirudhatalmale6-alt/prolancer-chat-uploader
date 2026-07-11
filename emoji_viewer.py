@@ -237,7 +237,30 @@ def main():
         check('video opens on its poster frame, not black',
               bool(video.get_attribute('poster')),
               video.get_attribute('poster') or 'no poster')
-        page.wait_for_timeout(700)
+
+        # While it buffers the site's OWN spinner shows — and the browser's does
+        # not, because a <video>'s built-in spinner lives inside its default
+        # controls and cannot be styled, so the controls are withheld until it
+        # can play. Assert both halves: ours on, its controls off.
+        loader = page.locator('.pcu-viewer-loader')
+        if video.evaluate('v => v.readyState < 3'):
+            check("the site's own spinner shows while the video loads",
+                  loader.is_visible())
+            check("the browser's own spinner is suppressed (controls held back)",
+                  video.evaluate('v => !v.controls'))
+
+        page.wait_for_function(
+            "() => { const v = document.querySelector('.pcu-viewer-stage video');"
+            "        return v && v.readyState >= 3; }", timeout=15000)
+        page.wait_for_timeout(300)
+
+        check('spinner clears once the video is playable', not loader.is_visible())
+        check('controls appear once the video is playable',
+              video.evaluate('v => v.controls'))
+        check('spinner uses the same gif as the rest of the site',
+              'loader.gif' in (page.locator('.pcu-viewer-loader img').get_attribute('src') or ''),
+              page.locator('.pcu-viewer-loader img').get_attribute('src') or 'none')
+
         playing = video.evaluate('v => !v.paused && v.currentTime > 0')
         check('video plays in the viewer', playing)
 

@@ -190,6 +190,9 @@
 <script>
     window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 50 };
     window.PCU_EMOJI  = { url: 'assets/emoji-data.json' };
+    // On the real site this is the plugin's own images/loader.gif — the same
+    // file every other loader on the site uses.
+    window.PCU_VIEWER = { spinner: 'fixtures/loader.gif' };
 </script>
 <!-- defer keeps both off the critical path and preserves execution order,
      so the chat page paints without waiting on the uploader. -->

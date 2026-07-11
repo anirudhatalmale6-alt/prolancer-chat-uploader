@@ -20,6 +20,8 @@
 (function (window, document) {
     'use strict';
 
+    var CFG = window.PCU_VIEWER || {};
+
     var ICON = {
         close: '<path d="M18 6 6 18M6 6l12 12"/>',
         down:  '<path d="M12 4v12"/><path d="M7 12l5 5 5-5"/><path d="M5 20h14"/>',
@@ -95,6 +97,9 @@
             '<button type="button" class="pcu-viewer-nav pcu-viewer-prev" aria-label="Previous">' + svg(ICON.left) + '</button>' +
             '<button type="button" class="pcu-viewer-nav pcu-viewer-next" aria-label="Next">' + svg(ICON.right) + '</button>' +
             '<div class="pcu-viewer-stage"></div>' +
+            '<div class="pcu-viewer-loader" aria-hidden="true">' +
+                (CFG.spinner ? '<img src="' + CFG.spinner + '" alt="">' : '') +
+            '</div>' +
             '<div class="pcu-viewer-caption"></div>';
 
         document.body.appendChild(root);
@@ -124,27 +129,57 @@
 
     // ----------------------------------------------------------------- render
 
+    /**
+     * The site's own spinner, over whatever is loading.
+     *
+     * The browser draws its OWN loading spinner inside a <video>'s default
+     * controls, and it is not ours and cannot be styled. So the controls are
+     * withheld until the video can actually play — no controls, no browser
+     * spinner — and ours shows in the meantime. The moment it is playable the
+     * controls go on and ours comes off.
+     */
+    function loading(on) {
+        ui.root.classList.toggle('is-loading', !!on);
+    }
+
     function show(i) {
         at = (i + items.length) % items.length;      // wrap at both ends
         var item = items[at];
 
         // Drop the previous <video> rather than leave it buffering off-screen.
         ui.stage.innerHTML = '';
+        loading(false);
 
         var node;
         if (item.kind === 'image') {
             node = document.createElement('img');
-            node.src = item.url;
             node.alt = item.name;
+
+            loading(true);
+            node.addEventListener('load', function () { loading(false); });
+            node.addEventListener('error', function () { loading(false); });
+            node.src = item.url;                     // set src AFTER the listeners
         } else if (item.kind === 'video' || item.kind === 'audio') {
             node = document.createElement(item.kind);
             node.src = item.url;
-            node.controls = true;
             node.preload = 'metadata';
 
             // The frame we already generated. Without it the viewer is a black
             // box until the first frame decodes.
             if (item.poster) { node.poster = item.poster; }
+
+            loading(true);
+
+            node.addEventListener('canplay', function () {
+                loading(false);
+                node.controls = true;                // …and only now, its controls
+            });
+
+            // A file the browser cannot decode must not spin forever.
+            node.addEventListener('error', function () {
+                loading(false);
+                node.controls = true;
+            });
 
             // Browsers refuse to autoplay anything with sound until the user has
             // interacted with the page, and the refusal is a REJECTED PROMISE,

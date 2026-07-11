@@ -252,8 +252,30 @@ function pcu_enqueue_assets() {
 		pcu_asset_version( $dir . '/assets/js/chat-viewer.js' ),
 		true
 	);
+
+	wp_localize_script( 'pcu-chat-viewer', 'PCU_VIEWER', array( 'spinner' => pcu_spinner_url() ) );
 }
 add_action( 'wp_enqueue_scripts', 'pcu_enqueue_assets' );
+
+/**
+ * The site's own loading spinner.
+ *
+ * The SAME FILE the rest of the site uses, referenced rather than copied —
+ * the plugin's dashboard.css points .processing-loader at it. The client's
+ * standing rule: "use the exact same spinner as the rest… same file… so we only
+ * change once." Restyle that one gif and every loader on the site follows,
+ * including this one.
+ */
+function pcu_spinner_url() {
+	$url = plugins_url( 'prolancer-element/assets/images/loader.gif' );
+
+	/**
+	 * Filter the spinner URL (if the plugin ever moves its assets).
+	 *
+	 * @param string $url Spinner image URL.
+	 */
+	return (string) apply_filters( 'pcu_spinner_url', $url );
+}
 
 /**
  * `defer` keeps the script off the critical render path.
