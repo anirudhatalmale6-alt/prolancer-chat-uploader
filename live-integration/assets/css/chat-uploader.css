@@ -729,3 +729,44 @@
     margin: 12px 10px 12px 0;
     vertical-align: middle;
 }
+
+/* --------------------------------------------------------------------------
+   11. Chat thumbnails vs the plugin's avatar styling
+   --------------------------------------------------------------------------
+   The plugin styles EVERY image inside a chat row as an avatar:
+
+       .chat-list img { border-radius: 50px; width: 50px; }
+
+   That blanket rule was squashing our 84px attachment thumbnails to 50px wide
+   and rounding them into ellipses. Override it, scoped tightly to our own
+   thumbnails so the real avatars keep their round crop.
+
+   Specificity, not !important: `.chat-list .pcu-chat-attachments a.pcu-chat-thumb img`
+   outranks both `.chat-list img` and `.chat-list.message_sender img`, so this
+   wins regardless of which stylesheet the browser loads first.
+   -------------------------------------------------------------------------- */
+.chat-list .pcu-chat-attachments a.pcu-chat-thumb img {
+    border-radius: 0;          /* square — no round borders */
+    width: 84px;
+    height: 64px;
+    object-fit: cover;
+    margin: 0;
+    display: block;
+}
+
+/* Square the tile too, so a square image doesn't sit in a rounded card. */
+.chat-list .pcu-chat-attachments a.pcu-chat-thumb,
+.pcu-chat-thumb {
+    border-radius: 0;
+}
+
+/* The plugin also pill-styles .download links; ours are gone, but keep our
+   captions/tiles clear of any inherited chat-row text alignment. */
+.chat-list .pcu-chat-attachments {
+    text-align: left;
+    justify-content: flex-start;
+}
+
+.chat-list.message_sender .pcu-chat-attachments {
+    justify-content: flex-end;   /* own messages hug the right, like their text */
+}
