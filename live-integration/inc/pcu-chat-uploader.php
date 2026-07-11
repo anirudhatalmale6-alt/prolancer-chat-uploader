@@ -35,8 +35,23 @@ defined( 'ABSPATH' ) || exit;
  * video without letting anyone drop a 200 MB file into a chat thread.
  */
 function pcu_accepted_files() {
-	// ===== EDIT THIS LINE to add or remove file types =====
-	$types = 'image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip';
+	// Start from everything WordPress itself permits — images, video, audio,
+	// Office, PDF, archives and so on — rather than curating a list by hand that
+	// we'd have to keep extending every time someone wants a new format.
+	$exts = array();
+
+	foreach ( array_keys( get_allowed_mime_types() ) as $pattern ) {
+		// WP keys look like "jpg|jpeg|jpe" — one entry per extension.
+		foreach ( explode( '|', $pattern ) as $ext ) {
+			$exts[] = $ext;
+		}
+	}
+
+	// ...then subtract anything that could be executed or scripted.
+	$exts = array_values( array_diff( $exts, pcu_blocked_extensions() ) );
+	sort( $exts );
+
+	$types = '.' . implode( ',.', $exts );
 
 	/**
 	 * Filter the accepted file types (an HTML `accept` list).
@@ -45,6 +60,82 @@ function pcu_accepted_files() {
 	 */
 	return (string) apply_filters( 'pcu_accepted_files', $types );
 }
+
+/**
+ * Extensions we refuse regardless of what WordPress would otherwise allow.
+ *
+ * The client's rule: "allow most file types as long as they are not dangerous."
+ * Dangerous here means anything that can execute — on the server, in a visitor's
+ * browser, or on the machine of whoever downloads it.
+ *
+ *   - php/phtml/phar : would run ON THE SERVER if it ever landed somewhere
+ *                      executable. The single worst case.
+ *   - html/htm/xhtml : opens in the victim's browser on YOUR domain, so a
+ *                      malicious one can steal the session of whoever clicks it.
+ *   - svg            : an SVG is XML and can carry <script>. Same problem.
+ *   - js / swf       : executable in the browser.
+ *   - exe/msi/bat/cmd/com/scr/vbs/ps1/sh/jar/apk : executable on the machine of
+ *                      whoever downloads it, which is the other user in the chat.
+ *
+ * WordPress already blocks most of these, but not all — it permits .swf, and it
+ * permits .htm/.html for anyone who can post unfiltered HTML. This list does not
+ * rely on WP getting it right.
+ */
+function pcu_blocked_extensions() {
+	$blocked = array(
+		// Executes on the server
+		'php', 'php3', 'php4', 'php5', 'php7', 'phps', 'phtml', 'phar', 'cgi', 'pl', 'py',
+		// Executes in the browser, on your domain
+		'html', 'htm', 'xhtml', 'shtml', 'js', 'mjs', 'svg', 'svgz', 'swf', 'xml',
+		// Executes on the downloader's machine
+		'exe', 'msi', 'bat', 'cmd', 'com', 'scr', 'vbs', 'vbe', 'ws', 'wsf', 'wsh',
+		'ps1', 'sh', 'bash', 'jar', 'apk', 'app', 'dll', 'so', 'hta', 'reg',
+	);
+
+	/**
+	 * Filter the blocked extensions.
+	 *
+	 * @param string[] $blocked Extensions that are never accepted.
+	 */
+	return (array) apply_filters( 'pcu_blocked_extensions', $blocked );
+}
+
+/**
+ * Enforce the block list on the SERVER.
+ *
+ * The <input accept="…"> and the JavaScript check are conveniences — both are
+ * trivially bypassed by anyone who wants to (edit the DOM, or POST straight to
+ * admin-ajax). This runs inside WordPress's own upload pipeline, so it is the
+ * check that actually counts.
+ *
+ * Only applies to chat uploads, so the media library and every other uploader on
+ * the site behave exactly as before.
+ *
+ * @param array $file $_FILES entry being handled.
+ * @return array
+ */
+function pcu_block_dangerous_upload( $file ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the plugin's
+	// upload handler verifies its own nonce; this only narrows the scope.
+	$action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+
+	if ( 'prolancer_ajax_upload_message_attachment' !== $action ) {
+		return $file;
+	}
+
+	$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+
+	if ( in_array( $ext, pcu_blocked_extensions(), true ) ) {
+		$file['error'] = sprintf(
+			/* translators: %s: file extension */
+			esc_html__( '.%s files are not allowed for security reasons.', 'prolancer' ),
+			$ext
+		);
+	}
+
+	return $file;
+}
+add_filter( 'wp_handle_upload_prefilter', 'pcu_block_dangerous_upload' );
 
 /**
  * Max size per file, in MB.
