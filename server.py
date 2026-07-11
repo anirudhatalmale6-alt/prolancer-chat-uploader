@@ -35,7 +35,7 @@ class Handler(SimpleHTTPRequestHandler):
         with open(os.path.join(UPLOADS, stamped), 'wb') as fh:
             fh.write(item.file.read())
 
-        time.sleep(0.4)  # make the spinner/progress visible in the demo
+        time.sleep(1.2)  # keep uploads in-flight long enough to test the locked state
 
         body = json.dumps({'url': '/uploads/' + stamped, 'id': stamped,
                            'name': name}).encode()

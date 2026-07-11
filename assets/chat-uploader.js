@@ -377,6 +377,10 @@
         }
 
         function removeItem(item) {
+            // Guarded as well as disabled: setUploading() disables the buttons,
+            // but this is also called internally, so keep the rule in one place.
+            if (uploading && !item.done) { return; }
+
             if (item.xhr) { item.xhr.abort(); }
 
             var i = queue.indexOf(item);
@@ -504,6 +508,23 @@
             uploadTxt.textContent = on ? 'Uploading…' : 'Upload';
             closeBtn.disabled = on;
 
+            // Lock the controls while files are in flight, so the user can't add
+            // to or pull rows out from under a running upload.
+            //
+            // The class dims them; `disabled` is what actually stops them. CSS
+            // pointer-events alone would still leave them reachable by keyboard,
+            // and would do nothing about a drag-and-drop — both are blocked at
+            // the handler too (see openPicker / removeItem / drop).
+            root.classList.toggle('pcu-busy', on);
+
+            if (browse) { browse.disabled = on; }
+            input.disabled = on;
+
+            Array.prototype.forEach.call(
+                listEl.querySelectorAll('.pcu-file-remove'),
+                function (b) { b.disabled = on; }
+            );
+
             // Deliberately NO spinner overlay here. Each row already shows its own
             // progress bar, which says strictly more than a spinner does — and the
             // site's .processing-loader would grey the modal out and hide those
@@ -580,6 +601,7 @@
 
         function openPicker(e) {
             if (e) { e.preventDefault(); }
+            if (uploading) { return; }   // no adding files mid-upload
             input.click();
         }
 
@@ -608,6 +630,7 @@
 
         dropzone.addEventListener('dragenter', function (e) {
             e.preventDefault();
+            if (uploading) { return; }
             dragDepth++;
             dropzone.classList.add('is-dragover');
         });
@@ -626,6 +649,8 @@
             e.preventDefault();
             dragDepth = 0;
             dropzone.classList.remove('is-dragover');
+
+            if (uploading) { return; }   // dropping is not a click — guard it too
 
             if (e.dataTransfer && e.dataTransfer.files.length) {
                 addFiles(e.dataTransfer.files);

@@ -770,3 +770,33 @@
 .chat-list.message_sender .pcu-chat-attachments {
     justify-content: flex-end;   /* own messages hug the right, like their text */
 }
+
+/* --------------------------------------------------------------------------
+   12. Locked state while files are uploading
+   --------------------------------------------------------------------------
+   The user shouldn't be able to add more files, or yank a row out, while an
+   upload is in flight. The controls are genuinely `disabled` in JS (and the
+   handlers guard too) — this just makes that visible.
+   -------------------------------------------------------------------------- */
+.pcu-busy .pcu-dropzone {
+    opacity: .5;
+    cursor: default;
+    pointer-events: none;
+    border-color: var(--pcu-border);
+}
+
+.pcu-busy .pcu-dropzone:hover {
+    border-color: var(--pcu-border);   /* no hover affordance when it's inert */
+}
+
+.pcu-busy .pcu-file-remove {
+    opacity: .3;
+    cursor: default;
+    pointer-events: none;
+}
+
+.pcu-btn-close:disabled,
+.pcu-dz-browse:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
