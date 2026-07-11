@@ -41,10 +41,10 @@ with sync_playwright() as p:
     # 2. Modal must NOT close on backdrop click or ESC
     page.mouse.click(20, 20)          # click outside the dialog
     page.wait_for_timeout(400)
-    still_open_backdrop = page.is_visible('.pcu-modal.show')
+    still_open_backdrop = page.is_visible('.pcu-modal.is-open')
     page.keyboard.press('Escape')
     page.wait_for_timeout(400)
-    still_open_esc = page.is_visible('.pcu-modal.show')
+    still_open_esc = page.is_visible('.pcu-modal.is-open')
     print('Open after backdrop click:', still_open_backdrop, '| after ESC:', still_open_esc)
 
     # 3. Attach files
@@ -83,7 +83,7 @@ with sync_playwright() as p:
 
     page.wait_for_selector('.pcu-chat-attachments', timeout=15000)
     page.wait_for_timeout(900)
-    modal_closed = not page.is_visible('.pcu-modal.show')
+    modal_closed = not page.is_visible('.pcu-modal.is-open')
     thumbs = page.locator('.pcu-chat-thumb').count()
     print('Modal auto-closed after upload:', modal_closed, '| chat thumbs:', thumbs)
     shot(page, '06-uploaded-into-chat.png')

@@ -4,11 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prolancer — Chat attachment uploader</title>
-<link rel="stylesheet" href="vendor/bootstrap.min.css">
-<link rel="stylesheet" href="vendor/dropzone.min.css">
+<!-- ONE stylesheet for the uploader. No Bootstrap, no dropzone.min.css:
+     every Dropzone visual is overridden anyway, so shipping its CSS would only
+     add a second stylesheet and a paint of styles we immediately replace. -->
 <link rel="stylesheet" href="assets/chat-uploader.css">
 <style>
-    body { background: #f5f6fa; color: #3c4257; }
+    /* Demo page chrome only — NOT part of the deliverable. */
+    * { box-sizing: border-box; }
+    body { background: #f5f6fa; color: #3c4257; margin: 0;
+           font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     .demo-wrap { max-width: 720px; margin: 28px auto; }
     .demo-note { font-size: 13px; color: #8b95a9; margin-bottom: 10px; }
     .chat-card { background: #fff; border: 1px solid #e3e6ef; border-radius: 10px; overflow: hidden; }
@@ -74,55 +78,56 @@
 
 <!-- ====================== Uploader (modal + dropzone) ====================== -->
 <div id="pcu-uploader">
-    <div class="modal fade pcu-modal" tabindex="-1" aria-labelledby="pcu-title" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
+    <div class="pcu-modal" role="dialog" aria-modal="true" aria-labelledby="pcu-title" aria-hidden="true">
+        <div class="pcu-modal-dialog">
 
-                <div class="modal-header">
-                    <h5 class="modal-title" id="pcu-title">Attach files</h5>
-                </div>
-
-                <!-- Fixed height + styled scroll: never grows as files pile up -->
-                <div class="modal-body pcu-modal-body pcu-scroll">
-
-                    <form class="dropzone pcu-dropzone" action="/upload">
-                        <div class="pcu-dz-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-                                <path d="M12 16V9M9 12l3-3 3 3"/>
-                            </svg>
-                        </div>
-                        <div class="pcu-dz-title">Drop files here or click to upload.</div>
-                        <div class="pcu-dz-sub">You can drag images here, or browse files via the button below.</div>
-                        <span class="pcu-dz-browse" role="button">Browse Images</span>
-                    </form>
-
-                    <div class="pcu-file-list"></div>
-                </div>
-
-                <div class="modal-footer">
-                    <span class="pcu-footer-hint">Max 10 files &middot; 10&nbsp;MB each</span>
-                    <button type="button" class="pcu-btn-close">Close</button>
-                    <button type="button" class="pcu-btn-upload" disabled>
-                        <span class="pcu-spinner is-hidden"></span>
-                        <span class="pcu-btn-label">Upload</span>
-                    </button>
-                </div>
-
+            <div class="pcu-modal-header">
+                <h5 class="pcu-modal-title" id="pcu-title">Attach files</h5>
             </div>
+
+            <!-- Fixed height + styled scroll: never grows as files pile up -->
+            <div class="pcu-modal-body pcu-scroll">
+
+                <form class="pcu-dropzone" action="/upload">
+                    <div class="pcu-dz-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                            <path d="M12 16V9M9 12l3-3 3 3"/>
+                        </svg>
+                    </div>
+                    <div class="pcu-dz-title">Drop files here or click to upload.</div>
+                    <div class="pcu-dz-sub">You can drag images here, or browse files via the button below.</div>
+                    <span class="pcu-dz-browse" role="button">Browse Images</span>
+                </form>
+
+                <div class="pcu-file-list"></div>
+            </div>
+
+            <div class="pcu-modal-footer">
+                <span class="pcu-footer-hint">Max 10 files &middot; 10&nbsp;MB each</span>
+                <button type="button" class="pcu-btn-close">Close</button>
+                <button type="button" class="pcu-btn-upload" disabled>
+                    <span class="pcu-spinner is-hidden"></span>
+                    <span class="pcu-btn-label">Upload</span>
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
 
-<script src="vendor/bootstrap.bundle.min.js"></script>
-<script src="vendor/dropzone.min.js"></script>
+<script src="vendor/dropzone.min.js" defer></script>
 <script>
     window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 10 };
 </script>
-<script src="assets/chat-uploader.js"></script>
+<!-- defer keeps both off the critical path and preserves execution order,
+     so the chat page paints without waiting on the uploader. -->
+<script src="assets/chat-uploader.js" defer></script>
 <script>
 // ---- Host-page glue: drop uploaded files into the chat area ----------------
+// Deferred scripts run before DOMContentLoaded, so window.PCU exists by now.
+document.addEventListener('DOMContentLoaded', function () {
 window.PCU.on('pcu:uploaded', function (files) {
     var log = document.getElementById('chat-log');
 
@@ -140,7 +145,7 @@ window.PCU.on('pcu:uploaded', function (files) {
         a.target = '_blank';
 
         var isImg = /^image\//.test(f.type);
-        var src = f.url || f.preview;
+        var src = f.thumb || f.preview || f.url;   // preview is already decoded
 
         a.innerHTML = (isImg && src)
             ? '<img src="' + src + '" alt="">'
@@ -157,6 +162,7 @@ window.PCU.on('pcu:uploaded', function (files) {
     msg.appendChild(wrap);
     log.appendChild(msg);
     log.scrollTop = log.scrollHeight;
+});
 });
 </script>
 </body>
