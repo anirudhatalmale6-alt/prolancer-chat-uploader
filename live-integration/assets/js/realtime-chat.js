@@ -58,6 +58,7 @@
 				// markup — so a file that arrives live opens the same way.
 				'data-kind': a.kind || (a.is_image ? 'image' : 'file'),
 				'data-file': a.file || '',
+				'data-name': a.display || a.name || '',
 				'data-poster': a.poster || '',
 				'data-icon': (a.is_image || a.poster) ? '' : (a.icon || '')
 			});

@@ -18,6 +18,8 @@
     .chat-card { background: #fff; border: 1px solid #e3e6ef; border-radius: 10px; overflow: hidden; }
     .chat-head { padding: 14px 18px; border-bottom: 1px solid #e3e6ef; font-weight: 600; }
     .chat-log { padding: 18px; height: 250px; overflow-y: auto; background: #fafbfe; }
+    /* The ProLancer plugin's real rule — every image in a chat row is a circle. */
+    .chat-list img { border-radius: 50px; width: 50px; }
     .msg { max-width: 78%; margin-bottom: 14px; }
     .msg .bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
     .msg.them .bubble { background: #fff; border: 1px solid #e3e6ef; border-bottom-left-radius: 3px; }
@@ -75,12 +77,12 @@
                         <p>Sure, here's the first batch.</p>
                         <div class="pcu-chat-attachments">
                             <a class="pcu-chat-thumb" href="fixtures/mockup-homepage.png" target="_blank" rel="noopener"
-                               data-tip="mockup-homepage.png&#10;PNG &middot; 12 KB" data-kind="image" data-file="mockup-homepage.png">
+                               data-tip="Mockup, homepage v2.png&#10;PNG &middot; 12 KB" data-name="Mockup, homepage v2.png" data-kind="image" data-file="Mockup-homepage-v2.png">
                                 <img src="fixtures/mockup-homepage.png" alt="" width="84" height="64">
                                 <span class="pcu-chat-caption">mockup-homepage</span>
                             </a>
                             <a class="pcu-chat-thumb" href="fixtures/spec-sheet.pdf" target="_blank" rel="noopener"
-                               data-tip="spec-sheet.pdf&#10;PDF &middot; 8 KB" data-kind="file" data-file="spec-sheet.pdf"
+                               data-tip="Spec sheet, final.pdf&#10;PDF &middot; 8 KB" data-name="Spec sheet, final.pdf" data-kind="file" data-file="Spec-sheet-final.pdf"
                                data-icon="assets/icons/pdf.png">
                                 <img class="pcu-chat-icon" src="assets/icons/pdf.png" alt="pdf" width="84" height="64">
                                 <span class="pcu-chat-caption">spec-sheet</span>

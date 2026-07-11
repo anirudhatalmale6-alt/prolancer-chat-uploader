@@ -145,9 +145,15 @@ def main():
 
         check('tooltip appears on hover', tip.is_visible())
         text = tip.inner_text()
-        check('it is multiline: filename, then type and size',
-              '\n' in text and 'spec-sheet.pdf' in text and 'PDF' in text,
+        check('it is multiline: name, then type and size',
+              '\n' in text and 'Spec sheet, final.pdf' in text and 'PDF' in text,
               repr(text))
+
+        # WordPress sanitises an upload's name — spaces become hyphens. Showing
+        # that back to the reader is showing them plumbing; the post title keeps
+        # the name they actually chose.
+        check('the shown name has no hyphens from sanitising',
+              '-' not in text.split('\n')[0], repr(text.split('\n')[0]))
         check('newline is honoured (white-space)',
               tip.evaluate('n => getComputedStyle(n).whiteSpace') == 'pre-line')
         check('tooltip never eats the hover it describes',
@@ -169,6 +175,20 @@ def main():
         check('a dot on each of THEIR avatars', dots.count() == 2, '%d' % dots.count())
         check('no dot on your own (hidden) avatar',
               page.locator('.chat-list.message_sender .pcu-avatar').count() == 0)
+
+        # The avatar is a CIRCLE, so the dot must be inset along the diagonal —
+        # pinned to the square box's corner it sat half on the photo, half off.
+        # Measure to the dot's RIM, not its square bounding-box corner.
+        geo = page.evaluate("""() => {
+          const w = document.querySelector('.pcu-avatar'), d = document.querySelector('.pcu-dot');
+          const wb = w.getBoundingClientRect(), db = d.getBoundingClientRect();
+          const cx = wb.x + wb.width/2, cy = wb.y + wb.height/2;
+          const dx = db.x + db.width/2, dy = db.y + db.height/2;
+          return { r: wb.width/2, reach: Math.hypot(dx-cx, dy-cy) + db.width/2 };
+        }""")
+        check('dot sits fully inside the circular avatar',
+              geo['reach'] <= geo['r'],
+              'rim reaches %.1fpx, radius %.1fpx' % (geo['reach'], geo['r']))
 
         check('green when the other user is online',
               dots.first.evaluate('n => n.classList.contains("is-online")'))

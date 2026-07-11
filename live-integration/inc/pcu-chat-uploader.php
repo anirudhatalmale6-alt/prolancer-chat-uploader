@@ -767,10 +767,42 @@ function pcu_file_icon_url( $ext ) {
 }
 
 /**
+ * The name to SHOW for an attachment.
+ *
+ * Not the filename on disk. WordPress sanitises an upload's name — spaces become
+ * hyphens, punctuation is stripped — so "Half of the dot, outside the image.png"
+ * is stored as "Half-of-the-dot-outside-the-image.png", and reading it back to
+ * the user is showing them plumbing. The post title keeps the name they actually
+ * chose, so display that, with the extension put back on the end.
+ *
+ * The real filename is still what the download uses (data-file) — the save
+ * dialogue has to write a file that exists.
+ *
+ * @param int    $id  Attachment ID.
+ * @param string $ext Extension.
+ * @return string
+ */
+function pcu_attachment_name( $id, $ext ) {
+	$title = get_the_title( $id );
+	$ext   = strtolower( $ext );
+
+	if ( '' === $title ) {
+		return wp_basename( (string) wp_get_attachment_url( $id ) );
+	}
+
+	// Don't end up with "report.pdf.pdf" if the title already carries it.
+	if ( $ext && strtolower( substr( $title, -( strlen( $ext ) + 1 ) ) ) === '.' . $ext ) {
+		return $title;
+	}
+
+	return $ext ? $title . '.' . $ext : $title;
+}
+
+/**
  * The tooltip for an attachment: full name, then type and size.
  *
- * Two lines, because the file name is the thing that gets truncated in the tile
- * and the size is what people actually want to know before they click a 40 MB
+ * Two lines, because the name is the thing that gets truncated in the tile and
+ * the size is what people actually want to know before they click a 40 MB
  * download. Rendered by our own tooltip, not the browser's title bubble.
  *
  * @param int    $id  Attachment ID.
@@ -783,7 +815,7 @@ function pcu_attachment_tip( $id, $ext ) {
 
 	$line2 = trim( strtoupper( $ext ) . ( $size ? ' · ' . $size : '' ) );
 
-	return wp_basename( (string) wp_get_attachment_url( $id ) ) . "\n" . $line2;
+	return pcu_attachment_name( $id, $ext ) . "\n" . $line2;
 }
 
 /**
@@ -874,11 +906,12 @@ function pcu_render_attachments( $stored ) {
 		$icon = $thumb ? '' : pcu_file_icon_url( $ext );
 
 		printf(
-			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" data-tip="%s" data-kind="%s" data-file="%s"%s%s>',
+			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" data-tip="%s" data-name="%s" data-kind="%s" data-file="%s"%s%s>',
 			esc_url( $url ),
 			esc_attr( pcu_attachment_tip( $id, $ext ) ),
+			esc_attr( pcu_attachment_name( $id, $ext ) ),   // shown to the reader
 			esc_attr( $kind ),
-			esc_attr( wp_basename( $url ) ),
+			esc_attr( wp_basename( $url ) ),                // used by the save dialogue
 			$poster ? sprintf( ' data-poster="%s"', esc_url( $poster ) ) : '',
 			$icon ? sprintf( ' data-icon="%s"', esc_url( $icon ) ) : ''
 		);

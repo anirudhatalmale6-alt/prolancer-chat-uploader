@@ -425,9 +425,26 @@
             if (isOpen()) { close(); } else { open(); }
         });
 
-        // Warm the fetch on the way to the click, so the popup opens instantly.
-        btn.addEventListener('mouseenter', load, { once: true });
-        btn.addEventListener('focus', load, { once: true });
+        /**
+         * Build the whole thing on the way to the click.
+         *
+         * Creating ~1,900 buttons takes about 100ms, and doing it in the click
+         * handler meant the grid painted in front of you as it filled — which is
+         * what "cut off on first load" looked like once the emoji were text.
+         *
+         * Hovering the icon is the one thing that always happens BEFORE the
+         * click, so the fetch and the DOM are both done by the time the click
+         * lands. The popup is display:none until opened, so building it early
+         * costs no layout and no paint.
+         */
+        function prewarm() {
+            load().then(function (groups) {
+                if (groups.length && !built) { build(groups); }
+            });
+        }
+
+        btn.addEventListener('mouseenter', prewarm, { once: true });
+        btn.addEventListener('focus', prewarm, { once: true });
     }
 
     document.addEventListener('DOMContentLoaded', function () {

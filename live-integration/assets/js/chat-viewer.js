@@ -153,7 +153,7 @@
         var node;
         if (item.kind === 'image') {
             node = document.createElement('img');
-            node.alt = item.file;                    // the filename, not the tooltip
+            node.alt = item.name;
 
             loading(true);
             node.addEventListener('load', function () { loading(false); });
@@ -223,7 +223,7 @@
         ui.stage.appendChild(node);
 
         ui.count.textContent = (at + 1) + ' / ' + items.length;
-        ui.caption.textContent = item.file || item.name;
+        ui.caption.textContent = item.name || item.file;
 
         // One file: nothing to step to, so don't offer.
         var many = items.length > 1;
@@ -276,8 +276,10 @@
         return {
             url:    a.getAttribute('href'),
             kind:   a.getAttribute('data-kind') || 'file',
+            // 'file' is the name on disk — what the save dialogue must write.
+            // 'name' is the name a person gave it — what we show them.
             file:   a.getAttribute('data-file') || '',
-            name:   a.getAttribute('data-tip') || '',
+            name:   a.getAttribute('data-name') || a.getAttribute('data-file') || '',
             poster: a.getAttribute('data-poster') || '',
             icon:   a.getAttribute('data-icon') || ''
         };

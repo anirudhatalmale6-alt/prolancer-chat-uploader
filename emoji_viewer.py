@@ -67,9 +67,25 @@ def main():
         pop = page.locator('.pcu-emoji-pop')
         check('popup absent until opened', pop.count() == 0)
 
-        page.click('.pcu-emoji-btn')
+        # Hovering builds AND lays out the whole panel, so the click has nothing
+        # left to do but show it. Built on the click instead, the layout of
+        # ~1,900 buttons landed there and you watched the grid assemble itself.
+        page.hover('.pcu-emoji-btn')
+        page.wait_for_timeout(800)
+        check('panel is built and laid out on hover, before any click',
+              page.locator('.pcu-emoji').count() > 1800
+              and not page.locator('.pcu-emoji-pop').is_visible())
+
+        opened_in = page.evaluate("""async () => {
+          const t0 = performance.now();
+          document.querySelector('.pcu-emoji-btn').click();
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          return performance.now() - t0;
+        }""")
         expect(pop).to_be_visible()
         check('opens on icon click', pop.is_visible())
+        check('and opens in one frame, not by assembling itself',
+              opened_in < 50, '%.0fms' % opened_in)
 
         tabs = page.locator('.pcu-emoji-tab')
         check('9 tabs (recent + 8 groups)', tabs.count() == 9,
@@ -293,9 +309,14 @@ def main():
         with page.expect_download() as dl:
             page.click('.pcu-viewer-download')
         got = dl.value
-        check('download opens a save dialogue',
-              got.suggested_filename == 'mockup-homepage.png',
+        # The SAVE must use the real filename on disk, even though what we SHOW
+        # the reader is the un-sanitised name they actually chose.
+        check('download saves the real file, not the display name',
+              got.suggested_filename == 'Mockup-homepage-v2.png',
               got.suggested_filename)
+        check('the caption shows the name a person chose, with no dashes',
+              page.locator('.pcu-viewer-caption').inner_text() == 'Mockup, homepage v2.png',
+              page.locator('.pcu-viewer-caption').inner_text())
 
         # A playing video must not keep playing after the viewer closes.
         page.keyboard.press('ArrowLeft')           # 5/5

@@ -910,14 +910,20 @@
 }
 
 /* The popup itself.
-   `display:none` until open, so the ~1,900 emoji inside are never laid out on
-   a page where the picker is not used — and nothing can shift on load. */
+
+   Hidden with `visibility`, NOT `display: none`. It is built on hover, and a
+   display:none element is not laid out — so the layout of ~1,900 buttons would
+   still have landed on the click, and you would watch the grid assemble itself.
+   visibility:hidden is laid out while hidden, so hovering pays that cost and
+   the click only has to flip a flag. It is absolutely positioned, so an unopened
+   popup still cannot shift anything on the page. */
 .pcu-emoji-pop {
     position: absolute;
     bottom: calc(100% + 10px);
     left: 0;
     z-index: 1060;
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
     width: 352px;
     max-width: calc(100vw - 32px);
     background: #fff;
@@ -928,7 +934,8 @@
 }
 
 .pcu-emoji-pop.is-open {
-    display: block;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 
@@ -1369,13 +1376,26 @@
 
 .pcu-dot {
     position: absolute;
-    right: 0;
-    bottom: 0;
+
+    /* The avatar is a CIRCLE — the plugin rounds every chat image — so pinning
+       the dot to the bottom-right of its SQUARE box left it half on the photo
+       and half off it, floating in the corner the circle doesn't reach.
+
+       The corner is the furthest point from the circle. Inset the dot along the
+       diagonal until it fits: for a 50px avatar and a 17px dot (13px + 2px
+       border either side), 10% is the first inset where the whole dot lands
+       inside the circle — it reaches 24.8px from the centre, against a 25px
+       radius. A percentage, not pixels, so it still holds if the avatar is ever
+       resized. */
+    right: 10%;
+    bottom: 10%;
+
     width: 13px;
     height: 13px;
     border-radius: 50%;
     border: 2px solid #fff;         /* separates it from a busy avatar */
     background: #adb5bd;            /* offline until we hear otherwise */
+    box-sizing: content-box;        /* the border must not eat the 13px */
     transition: background-color .2s ease;
 }
 

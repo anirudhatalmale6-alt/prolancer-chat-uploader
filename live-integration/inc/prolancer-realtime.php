@@ -235,6 +235,11 @@ function prolancer_realtime_attachments( $stored ) {
 			'tip'      => function_exists( 'pcu_attachment_tip' )
 				? pcu_attachment_tip( $id, pathinfo( $url, PATHINFO_EXTENSION ) )
 				: get_the_title( $id ),
+
+			// The name a person gave the file, not the sanitised one on disk.
+			'display'  => function_exists( 'pcu_attachment_name' )
+				? pcu_attachment_name( $id, pathinfo( $url, PATHINFO_EXTENSION ) )
+				: get_the_title( $id ),
 		);
 	}
 
