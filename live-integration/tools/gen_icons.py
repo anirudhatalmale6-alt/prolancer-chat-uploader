@@ -24,14 +24,22 @@ FOLD = 30           # the folded corner
 
 # Colour per family, not per extension — a spreadsheet is green whether it is
 # .xlsx or .csv, which is the convention every OS file manager already uses.
+#
+# NOTHING FROM pcu_blocked_extensions() BELONGS HERE. php, js, html, exe, apk,
+# svg… are refused at upload, so they can never appear in a chat: an icon for
+# one would advertise a type the chat will not accept.
 FAMILIES = [
     ('#e5252a', ['pdf']),
-    ('#2b579a', ['doc', 'docx', 'rtf', 'odt']),
-    ('#217346', ['xls', 'xlsx', 'csv', 'ods']),
-    ('#d24726', ['ppt', 'pptx', 'odp']),
-    ('#f0a500', ['zip', 'rar', '7z', 'gz', 'tar']),
-    ('#7d4cdb', ['mp3', 'wav', 'ogg', 'm4a', 'flac']),
-    ('#0f9dd7', ['txt', 'md']),
+    ('#2b579a', ['doc', 'docx', 'rtf', 'odt', 'pages', 'wpd']),
+    ('#217346', ['xls', 'xlsx', 'csv', 'tsv', 'ods', 'numbers']),
+    ('#d24726', ['ppt', 'pptx', 'odp', 'key']),
+    ('#f0a500', ['zip', 'rar', '7z', 'gz', 'tar', 'bz2', 'xz', 'iso']),
+    ('#7d4cdb', ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'mid']),
+    ('#0f9dd7', ['txt', 'md', 'log', 'ini']),
+    ('#00a39c', ['css', 'json', 'yml', 'yaml', 'sql']),
+    ('#e0367a', ['psd', 'xcf', 'ai', 'eps', 'indd', 'fig', 'sketch', 'xd']),
+    ('#455a64', ['ttf', 'otf', 'woff', 'woff2']),
+    ('#8d6e63', ['epub', 'mobi', 'azw3']),
     ('#8b95a9', ['generic']),
 ]
 
@@ -67,9 +75,19 @@ def draw(ext, colour):
 
     label = '' if ext == 'generic' else ext.upper()
     if label:
-        f = font(20 if len(label) <= 3 else 16)
-        box = d.textbbox((0, 0), label, font=f)
-        d.text(((x0 - 2 + x1 - 14) / 2 - (box[2] - box[0]) / 2,
+        band_x0, band_x1 = x0 - 2, x1 - 14
+
+        # Shrink until it fits the band — NUMBERS and SKETCH are long enough to
+        # overflow at the size PDF is drawn at.
+        px = 20
+        while px > 9:
+            f = font(px)
+            box = d.textbbox((0, 0), label, font=f)
+            if box[2] - box[0] <= (band_x1 - band_x0) - 12:
+                break
+            px -= 1
+
+        d.text(((band_x0 + band_x1) / 2 - (box[2] - box[0]) / 2,
                 band_y + band_h / 2 - (box[3] - box[1]) / 2 - box[1]),
                label, font=f, fill='#ffffff')
 
