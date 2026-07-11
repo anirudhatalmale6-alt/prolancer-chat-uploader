@@ -35,7 +35,8 @@ defined( 'ABSPATH' ) || exit;
  * video without letting anyone drop a 200 MB file into a chat thread.
  */
 function pcu_accepted_files() {
-	$types = 'image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.zip';
+	// ===== EDIT THIS LINE to add or remove file types =====
+	$types = 'image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip';
 
 	/**
 	 * Filter the accepted file types (an HTML `accept` list).
@@ -49,6 +50,7 @@ function pcu_accepted_files() {
  * Max size per file, in MB.
  */
 function pcu_max_filesize_mb() {
+	// ===== EDIT THIS NUMBER to change the size limit (MB per file) =====
 	return (int) apply_filters( 'pcu_max_filesize_mb', 50 );
 }
 
@@ -56,6 +58,7 @@ function pcu_max_filesize_mb() {
  * Max number of files per message.
  */
 function pcu_max_files() {
+	// ===== EDIT THIS NUMBER to change how many files per message =====
 	return (int) apply_filters( 'pcu_max_files', 10 );
 }
 
