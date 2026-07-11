@@ -1,0 +1,476 @@
+/* ==========================================================================
+   Prolancer — Chat attachment uploader
+   Dropzone-in-a-modal, triggered by an icon in the message composer.
+   Namespaced under .pcu- so nothing here can leak into the parent theme.
+   ========================================================================== */
+
+:root {
+    --pcu-primary: #6c5ffc;
+    --pcu-primary-soft: #eceafe;
+    --pcu-accent: #29c3f0;
+    --pcu-accent-soft: #e2f6fd;
+    --pcu-border: #e3e6ef;
+    --pcu-text: #3c4257;
+    --pcu-muted: #8b95a9;
+    --pcu-danger: #f1556c;
+    --pcu-radius: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   1. The attach icon in the composer (replaces the "Choose File" input)
+   -------------------------------------------------------------------------- */
+.pcu-attach-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid var(--pcu-border);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--pcu-muted);
+    cursor: pointer;
+    transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+
+.pcu-attach-btn:hover,
+.pcu-attach-btn:focus-visible {
+    color: var(--pcu-primary);
+    border-color: var(--pcu-primary);
+    background: var(--pcu-primary-soft);
+    outline: none;
+}
+
+.pcu-attach-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Badge showing how many files are staged but not yet sent */
+.pcu-attach-btn {
+    position: relative;
+}
+
+.pcu-attach-count {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--pcu-danger);
+    color: #fff;
+    font-size: 11px;
+    line-height: 18px;
+    font-weight: 600;
+    display: none;
+}
+
+.pcu-attach-count.is-visible {
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   2. Modal shell — fixed height so it never grows forever
+   -------------------------------------------------------------------------- */
+.pcu-modal .modal-content {
+    border: none;
+    border-radius: var(--pcu-radius);
+    overflow: hidden;
+}
+
+.pcu-modal .modal-header {
+    border-bottom: 1px solid var(--pcu-border);
+    padding: 16px 20px;
+}
+
+.pcu-modal .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--pcu-text);
+}
+
+.pcu-modal .modal-footer {
+    border-top: 1px solid var(--pcu-border);
+    padding: 12px 20px;
+}
+
+/* The body is the part that scrolls. Height is capped, never grows. */
+.pcu-modal-body {
+    padding: 20px;
+    /* Cap relative to viewport so it also behaves on short laptop screens,
+       but never exceeds the fixed ceiling. */
+    max-height: min(58vh, 460px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* --------------------------------------------------------------------------
+   3. Styled scrollbar (placeholder — swap for the client's spec)
+   -------------------------------------------------------------------------- */
+.pcu-scroll {
+    scrollbar-width: thin;                              /* Firefox */
+    scrollbar-color: #c7ccd9 transparent;
+}
+
+.pcu-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.pcu-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 8px;
+}
+
+.pcu-scroll::-webkit-scrollbar-thumb {
+    background: #c7ccd9;
+    border-radius: 8px;
+    border: 2px solid #fff;                             /* inset look */
+}
+
+.pcu-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--pcu-muted);
+}
+
+/* --------------------------------------------------------------------------
+   4. Dropzone area
+   -------------------------------------------------------------------------- */
+.pcu-dropzone {
+    border: 2px dashed var(--pcu-border);
+    border-radius: var(--pcu-radius);
+    background: #fff;
+    padding: 34px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background-color .15s ease;
+    min-height: auto;
+}
+
+.pcu-dropzone:hover {
+    border-color: var(--pcu-accent);
+}
+
+/* Dropzone.js adds .dz-drag-hover while a file is dragged over the area */
+.pcu-dropzone.dz-drag-hover {
+    border-color: var(--pcu-accent);
+    background: var(--pcu-accent-soft);
+}
+
+.pcu-dz-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: var(--pcu-accent-soft);
+    color: var(--pcu-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pcu-dz-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.pcu-dz-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--pcu-text);
+    margin-bottom: 6px;
+}
+
+.pcu-dz-sub {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--pcu-muted);
+    margin-bottom: 14px;
+}
+
+.pcu-dz-browse {
+    display: inline-block;
+    padding: 7px 16px;
+    border: 1px solid var(--pcu-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--pcu-text);
+    font-size: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+}
+
+.pcu-dz-browse:hover {
+    background: #f7f8fb;
+}
+
+/* Kill Dropzone's stock preview/message markup — we render our own list */
+.pcu-dropzone .dz-preview,
+.pcu-dropzone .dz-default {
+    display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. File list — thumbnail, name, size, remove
+   -------------------------------------------------------------------------- */
+.pcu-file-list {
+    margin-top: 18px;
+    border: 1px solid var(--pcu-border);
+    border-radius: var(--pcu-radius);
+    overflow: hidden;
+    display: none;
+}
+
+.pcu-file-list.is-visible {
+    display: block;
+}
+
+.pcu-file-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--pcu-border);
+    background: #fff;
+}
+
+.pcu-file-row:last-child {
+    border-bottom: none;
+}
+
+/* Thumbnail for media files; falls back to a file-type glyph */
+.pcu-file-thumb {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    border: 1px solid var(--pcu-border);
+    background: #f7f8fb;
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.pcu-file-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.pcu-file-thumb .pcu-ext {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--pcu-muted);
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+.pcu-file-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pcu-file-name {
+    display: block;
+    font-size: 14px;
+    color: var(--pcu-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pcu-file-size {
+    display: block;
+    font-size: 13px;
+    color: var(--pcu-muted);
+    margin-top: 2px;
+}
+
+.pcu-file-remove {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--pcu-danger);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color .15s ease;
+}
+
+.pcu-file-remove:hover {
+    background: #fdeaed;
+}
+
+.pcu-file-remove svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Per-file progress bar, shown only while that file is uploading */
+.pcu-file-progress {
+    height: 3px;
+    margin-top: 6px;
+    border-radius: 2px;
+    background: var(--pcu-border);
+    overflow: hidden;
+    display: none;
+}
+
+.pcu-file-row.is-uploading .pcu-file-progress {
+    display: block;
+}
+
+.pcu-file-progress span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--pcu-primary);
+    transition: width .2s ease;
+}
+
+.pcu-file-row.is-error .pcu-file-name {
+    color: var(--pcu-danger);
+}
+
+.pcu-file-error {
+    display: none;
+    font-size: 12px;
+    color: var(--pcu-danger);
+    margin-top: 2px;
+}
+
+.pcu-file-row.is-error .pcu-file-error {
+    display: block;
+}
+
+.pcu-file-row.is-error .pcu-file-size {
+    display: none;
+}
+
+/* --------------------------------------------------------------------------
+   6. Footer buttons — Upload stays dimmed until files are attached
+   -------------------------------------------------------------------------- */
+.pcu-btn-upload {
+    background: var(--pcu-primary);
+    border: 1px solid var(--pcu-primary);
+    color: #fff;
+    border-radius: 6px;
+    padding: 8px 22px;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: opacity .15s ease;
+}
+
+.pcu-btn-upload:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.pcu-btn-close {
+    background: #fff;
+    border: 1px solid var(--pcu-border);
+    color: var(--pcu-text);
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.pcu-btn-close:hover {
+    background: #f7f8fb;
+}
+
+.pcu-footer-hint {
+    margin-right: auto;
+    font-size: 13px;
+    color: var(--pcu-muted);
+}
+
+/* --------------------------------------------------------------------------
+   7. Spinner — one definition, reused for every async action
+   -------------------------------------------------------------------------- */
+.pcu-spinner {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: pcu-spin .7s linear infinite;
+    vertical-align: -2px;
+}
+
+.pcu-spinner.is-hidden {
+    display: none;
+}
+
+@keyframes pcu-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pcu-spinner { animation-duration: 2s; }
+}
+
+/* --------------------------------------------------------------------------
+   8. Attachments rendered into the chat area after upload
+   -------------------------------------------------------------------------- */
+.pcu-chat-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.pcu-chat-thumb {
+    width: 84px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--pcu-border);
+    background: #fff;
+    text-decoration: none;
+    display: block;
+}
+
+.pcu-chat-thumb img {
+    width: 84px;
+    height: 64px;
+    object-fit: cover;
+    display: block;
+}
+
+.pcu-chat-thumb .pcu-chat-file {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7f8fb;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--pcu-muted);
+    text-transform: uppercase;
+}
+
+.pcu-chat-thumb .pcu-chat-caption {
+    display: block;
+    padding: 4px 6px;
+    font-size: 11px;
+    color: var(--pcu-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid var(--pcu-border);
+}

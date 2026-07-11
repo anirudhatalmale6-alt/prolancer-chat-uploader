@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prolancer — Chat attachment uploader</title>
+<link rel="stylesheet" href="vendor/bootstrap.min.css">
+<link rel="stylesheet" href="vendor/dropzone.min.css">
+<link rel="stylesheet" href="assets/chat-uploader.css">
+<style>
+    body { background: #f5f6fa; color: #3c4257; }
+    .demo-wrap { max-width: 720px; margin: 28px auto; }
+    .demo-note { font-size: 13px; color: #8b95a9; margin-bottom: 10px; }
+    .chat-card { background: #fff; border: 1px solid #e3e6ef; border-radius: 10px; overflow: hidden; }
+    .chat-head { padding: 14px 18px; border-bottom: 1px solid #e3e6ef; font-weight: 600; }
+    .chat-log { padding: 18px; height: 250px; overflow-y: auto; background: #fafbfe; }
+    .msg { max-width: 78%; margin-bottom: 14px; }
+    .msg .bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+    .msg.them .bubble { background: #fff; border: 1px solid #e3e6ef; border-bottom-left-radius: 3px; }
+    .msg.me { margin-left: auto; }
+    .msg.me .bubble { background: #6c5ffc; color: #fff; border-bottom-right-radius: 3px; }
+    .msg .who { font-size: 12px; color: #8b95a9; margin-bottom: 4px; }
+    .msg.me .who { text-align: right; }
+    .composer { padding: 14px 18px; border-top: 1px solid #e3e6ef; background: #fff; }
+    .composer textarea { width: 100%; border: 1px solid #e3e6ef; border-radius: 8px;
+        padding: 12px 14px; font-size: 14px; resize: none; }
+    .composer textarea:focus { outline: none; border-color: #6c5ffc; }
+    .composer-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .btn-send { margin-left: auto; background: #6c5ffc; border: none; color: #fff;
+        border-radius: 22px; padding: 10px 26px; font-size: 14px; font-weight: 500;
+        display: inline-flex; align-items: center; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="demo-wrap">
+    <p class="demo-note">Prolancer chat — attachment uploader demo</p>
+
+    <div class="chat-card">
+        <div class="chat-head">Messages</div>
+
+        <div class="chat-log" id="chat-log">
+            <div class="msg them">
+                <div class="who">Client</div>
+                <div class="bubble">Hi, can you send over the design files?</div>
+            </div>
+            <div class="msg me">
+                <div class="who">You</div>
+                <div class="bubble">Sure, attaching them now.</div>
+            </div>
+        </div>
+
+        <div class="composer">
+            <textarea rows="2" placeholder="Type your message here..."></textarea>
+
+            <div class="composer-row">
+                <!-- Replaces the old "Choose File / No file chosen" input -->
+                <button type="button" class="pcu-attach-btn" aria-label="Attach files">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                    <span class="pcu-attach-count">0</span>
+                </button>
+
+                <button type="button" class="btn-send">
+                    <span class="pcu-spinner is-hidden"></span>
+                    <span>Send message</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================== Uploader (modal + dropzone) ====================== -->
+<div id="pcu-uploader">
+    <div class="modal fade pcu-modal" tabindex="-1" aria-labelledby="pcu-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pcu-title">Attach files</h5>
+                </div>
+
+                <!-- Fixed height + styled scroll: never grows as files pile up -->
+                <div class="modal-body pcu-modal-body pcu-scroll">
+
+                    <form class="dropzone pcu-dropzone" action="/upload">
+                        <div class="pcu-dz-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                                <path d="M12 16V9M9 12l3-3 3 3"/>
+                            </svg>
+                        </div>
+                        <div class="pcu-dz-title">Drop files here or click to upload.</div>
+                        <div class="pcu-dz-sub">You can drag images here, or browse files via the button below.</div>
+                        <span class="pcu-dz-browse" role="button">Browse Images</span>
+                    </form>
+
+                    <div class="pcu-file-list"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <span class="pcu-footer-hint">Max 10 files &middot; 10&nbsp;MB each</span>
+                    <button type="button" class="pcu-btn-close">Close</button>
+                    <button type="button" class="pcu-btn-upload" disabled>
+                        <span class="pcu-spinner is-hidden"></span>
+                        <span class="pcu-btn-label">Upload</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/bootstrap.bundle.min.js"></script>
+<script src="vendor/dropzone.min.js"></script>
+<script>
+    window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 10 };
+</script>
+<script src="assets/chat-uploader.js"></script>
+<script>
+// ---- Host-page glue: drop uploaded files into the chat area ----------------
+window.PCU.on('pcu:uploaded', function (files) {
+    var log = document.getElementById('chat-log');
+
+    var msg = document.createElement('div');
+    msg.className = 'msg me';
+    msg.innerHTML = '<div class="who">You</div>';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pcu-chat-attachments';
+
+    files.forEach(function (f) {
+        var a = document.createElement('a');
+        a.className = 'pcu-chat-thumb';
+        a.href = f.url || '#';
+        a.target = '_blank';
+
+        var isImg = /^image\//.test(f.type);
+        var src = f.url || f.preview;
+
+        a.innerHTML = (isImg && src)
+            ? '<img src="' + src + '" alt="">'
+            : '<div class="pcu-chat-file">' + (f.name.split('.').pop() || 'file') + '</div>';
+
+        var cap = document.createElement('span');
+        cap.className = 'pcu-chat-caption';
+        cap.textContent = f.name;
+        a.appendChild(cap);
+
+        wrap.appendChild(a);
+    });
+
+    msg.appendChild(wrap);
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+});
+</script>
+</body>
+</html>
