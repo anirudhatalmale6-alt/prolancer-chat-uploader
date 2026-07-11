@@ -312,11 +312,17 @@ function prolancer_realtime_enqueue() {
 
 	wp_enqueue_script( 'pusher-js', 'https://js.pusher.com/8.2.0/pusher.min.js', array(), '8.2.0', true );
 
+	$realtime_js = get_stylesheet_directory() . '/assets/js/realtime-chat.js';
+
 	wp_enqueue_script(
 		'prolancer-realtime',
 		get_stylesheet_directory_uri() . '/assets/js/realtime-chat.js',
 		array( 'jquery', 'prolancer-app', 'pusher-js' ),
-		'1.1.0',
+		// filemtime, NOT a hand-written version string. A fixed '1.1.0' meant
+		// that editing this file changed nothing for anyone: browsers kept
+		// serving the cached copy, so users ran old chat code until they cleared
+		// their cache. Now the version changes whenever the file does.
+		file_exists( $realtime_js ) ? (string) filemtime( $realtime_js ) : '1.1.0',
 		true
 	);
 

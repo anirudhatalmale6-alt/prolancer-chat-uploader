@@ -258,7 +258,6 @@
         var idField = form ? form.querySelector('.attachment-id') : null;
 
         var modalNode = root.querySelector('.pcu-modal');
-        var dialog    = root.querySelector('.pcu-modal-dialog');
         var dropzone  = root.querySelector('.pcu-dropzone');
         var input     = root.querySelector('.pcu-input');
         var browse    = root.querySelector('.pcu-dz-browse');
@@ -505,11 +504,11 @@
             uploadTxt.textContent = on ? 'Uploading…' : 'Upload';
             closeBtn.disabled = on;
 
-            // THE site spinner: `.processing-loader` from the ProLancer plugin,
-            // which overlays its own loader.gif. Reused rather than reimplemented
-            // so that restyling the spinner later is a single change, in their
-            // file, and this picks it up for free.
-            dialog.classList.toggle('processing-loader', on);
+            // Deliberately NO spinner overlay here. Each row already shows its own
+            // progress bar, which says strictly more than a spinner does — and the
+            // site's .processing-loader would grey the modal out and hide those
+            // bars behind it. The site spinner still covers the send itself, which
+            // is the part with nothing else to show.
         }
 
         uploadBtn.addEventListener('click', function () {

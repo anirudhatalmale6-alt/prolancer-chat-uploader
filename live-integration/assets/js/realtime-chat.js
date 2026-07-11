@@ -31,16 +31,6 @@
 		}
 	}
 
-	// Build a download link (service chat attachments).
-	function downloadLink(url) {
-		if (!url) {
-			return null;
-		}
-		var $a = $('<a/>', { 'class': 'download', href: url, download: '' }).text(CFG.downloadText || 'Download');
-		$('<i/>', { 'class': 'fad fa-download' }).appendTo($a);
-		return $a;
-	}
-
 	/**
 	 * A message can now carry several attachments. Render them as thumbnails,
 	 * matching how the page renders them server-side on load (pcu_render_attachments),

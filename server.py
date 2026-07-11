@@ -26,7 +26,10 @@ class Handler(SimpleHTTPRequestHandler):
             environ={'REQUEST_METHOD': 'POST',
                      'CONTENT_TYPE': self.headers['Content-Type']},
         )
-        item = form['file']
+        # The real endpoint (prolancer_ajax_upload_message_attachment) takes the
+        # file as `attachment`; accept `file` too so older captures still work.
+        field = 'attachment' if 'attachment' in form else 'file'
+        item = form[field]
         name = os.path.basename(item.filename)
         stamped = '%d-%s' % (int(time.time() * 1000), name)
         with open(os.path.join(UPLOADS, stamped), 'wb') as fh:
