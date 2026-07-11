@@ -127,42 +127,94 @@
     flex: 0 0 auto;
 }
 
-/* The body is the only part that scrolls. Height is capped, never grows. */
+/* The body is the only part that scrolls. The height ceiling lives on
+   .pcu-scroll-wrap (see section 3) so the scrollbar track can span it. */
 .pcu-modal-body {
     padding: 20px;
-    /* Cap relative to viewport so it also behaves on short laptop screens,
-       but never exceeds the fixed ceiling. */
-    max-height: min(58vh, 460px);
     overflow-y: auto;
     overscroll-behavior: contain;
     flex: 1 1 auto;
+    min-height: 0;
 }
 
 /* --------------------------------------------------------------------------
-   3. Styled scrollbar (placeholder — swap for the client's spec)
+   3. Styled scrollbar — matches the Dhonu (SimpleBar) scrollbar.
+      Values lifted from Dhonu's own app.min.css:
+        .simplebar-track.simplebar-vertical  { width: 11px }
+        .simplebar-scrollbar                 { right: 2px; width: 6px }
+        .simplebar-scrollbar:before          { background: #a2adb7;
+                                               border-radius: 7px }
+        .simplebar-scrollbar.simplebar-visible:before { opacity: .5 }
+
+      Done natively rather than by pulling in SimpleBar's JS: the look is
+      identical and it keeps the chat page free of another dependency.
    -------------------------------------------------------------------------- */
+/* The native scrollbar is hidden and we draw our own — the same approach
+   SimpleBar takes, and for the same reason: a native scrollbar cannot be made
+   to look identical across platforms. On macOS it is an overlay bar that is
+   invisible until you scroll, so a Mac user would never see this style at all.
+   A real element renders the same everywhere.
+
+   Hiding it: scrollbar-width covers Firefox, ::-webkit-scrollbar covers the
+   rest. (Chrome ignores ::-webkit-scrollbar once scrollbar-width is set, but
+   here both say "no scrollbar", so either winning is fine.) */
 .pcu-scroll {
-    scrollbar-width: thin;                              /* Firefox */
-    scrollbar-color: #c7ccd9 transparent;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .pcu-scroll::-webkit-scrollbar {
-    width: 8px;
+    display: none;
 }
 
-.pcu-scroll::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 8px;
+/* Wrapper is the positioning context. The track is a SIBLING of the scroller,
+   not a child — a child would scroll away with the content. */
+.pcu-scroll-wrap {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(58vh, 460px);   /* fixed ceiling: the modal never grows */
 }
 
-.pcu-scroll::-webkit-scrollbar-thumb {
-    background: #c7ccd9;
-    border-radius: 8px;
-    border: 2px solid #fff;                             /* inset look */
+.pcu-sb-track {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 11px;                    /* = .simplebar-track.simplebar-vertical */
+    z-index: 2;
+    pointer-events: none;
 }
 
-.pcu-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--pcu-muted);
+.pcu-sb-thumb {
+    position: absolute;
+    right: 2px;                     /* = .simplebar-scrollbar */
+    width: 6px;
+    min-height: 10px;
+    border-radius: 7px;             /* = .simplebar-scrollbar:before */
+    background: #a2adb7;
+    opacity: 0;
+    transition: opacity .2s linear;
+    pointer-events: auto;
+    cursor: default;
+}
+
+/* SimpleBar shows the thumb at .5 while scrolling or hovering. */
+.pcu-scroll-wrap:hover .pcu-sb-thumb,
+.pcu-sb-thumb.is-visible {
+    opacity: .5;
+    transition: opacity 0s linear;
+}
+
+.pcu-sb-thumb:hover,
+.pcu-sb-thumb.is-dragging {
+    opacity: .8;
+}
+
+/* Nothing to scroll — no thumb. */
+.pcu-sb-track.is-idle .pcu-sb-thumb {
+    opacity: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -431,21 +483,40 @@
 }
 
 /* --------------------------------------------------------------------------
-   7. Spinner — one definition, reused for every async action
+   7. Spinner — THE site spinner. One definition, reused for every action.
+
+      This is the 12-blade loader already used on page load, rebuilt as an
+      inline SVG data URI: no extra HTTP request, no image file to go missing,
+      and it scales to any size without going fuzzy.
+
+      It ticks in 12 discrete steps rather than sweeping smoothly, which is
+      what makes a bladed spinner read correctly — a linear rotation looks
+      wrong on this shape.
+
+      Size it per use with --pcu-spinner-size; colour is baked into the blades
+      to match the existing grey.
    -------------------------------------------------------------------------- */
 .pcu-spinner {
+    --pcu-spinner-size: 16px;
+
     display: inline-block;
-    width: 15px;
-    height: 15px;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: pcu-spin .7s linear infinite;
+    width: var(--pcu-spinner-size);
+    height: var(--pcu-spinner-size);
+    flex: 0 0 auto;
     vertical-align: -2px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.12' transform='rotate%280 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.2' transform='rotate%2830 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.28' transform='rotate%2860 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.36' transform='rotate%2890 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.44' transform='rotate%28120 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.52' transform='rotate%28150 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.6' transform='rotate%28180 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.68' transform='rotate%28210 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.76' transform='rotate%28240 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.84' transform='rotate%28270 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='0.92' transform='rotate%28300 12 12%29'/%3E%3Crect x='10.8' y='1.6' width='2.4' height='6.2' rx='1.2' fill='%238a8f98' opacity='1.0' transform='rotate%28330 12 12%29'/%3E%3C/svg%3E") center / contain no-repeat;
+    animation: pcu-spin 1s steps(12, end) infinite;
 }
 
 .pcu-spinner.is-hidden {
     display: none;
+}
+
+/* Bigger, centred variant — for page/section loads rather than inside a button */
+.pcu-spinner-lg {
+    --pcu-spinner-size: 44px;
+    display: block;
+    margin: 0 auto;
 }
 
 @keyframes pcu-spin {
@@ -453,7 +524,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .pcu-spinner { animation-duration: 2s; }
+    .pcu-spinner { animation-duration: 3s; }
 }
 
 /* --------------------------------------------------------------------------
@@ -528,10 +599,9 @@
         height: 100%;
     }
 
-    .pcu-modal-body {
-        /* Header + footer are ~130px; let the body take the rest and scroll. */
+    /* Header + footer are ~130px; let the scroller take whatever is left. */
+    .pcu-scroll-wrap {
         max-height: none;
-        flex: 1 1 auto;
     }
 
     .pcu-dropzone {

@@ -85,7 +85,10 @@
                 <h5 class="pcu-modal-title" id="pcu-title">Attach files</h5>
             </div>
 
-            <!-- Fixed height + styled scroll: never grows as files pile up -->
+            <!-- Fixed height + styled scroll: never grows as files pile up.
+                 The scrollbar track is a SIBLING of the scrolling body — as a
+                 child it would scroll away with the content. -->
+            <div class="pcu-scroll-wrap">
             <div class="pcu-modal-body pcu-scroll">
 
                 <form class="pcu-dropzone" action="/upload">
@@ -102,6 +105,11 @@
                 </form>
 
                 <div class="pcu-file-list"></div>
+            </div>
+
+                <div class="pcu-sb-track is-idle" aria-hidden="true">
+                    <div class="pcu-sb-thumb"></div>
+                </div>
             </div>
 
             <div class="pcu-modal-footer">

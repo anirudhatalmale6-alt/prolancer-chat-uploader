@@ -101,6 +101,109 @@
         };
     }
 
+    /**
+     * Custom overlay scrollbar, matching Dhonu's (SimpleBar's) look.
+     *
+     * The native bar is hidden in CSS and this draws a real element instead —
+     * the only way to get one consistent style on every platform, since macOS
+     * native scrollbars are invisible overlays.
+     *
+     * @param {HTMLElement} scroller Element with overflow-y:auto.
+     * @param {HTMLElement} track    Absolutely-positioned sibling of scroller.
+     * @param {HTMLElement} thumb    Child of track.
+     */
+    function attachScrollbar(scroller, track, thumb) {
+        var dragging = false;
+        var dragStartY = 0;
+        var dragStartScroll = 0;
+        var hideTimer = null;
+
+        function update() {
+            var visibleH = scroller.clientHeight;
+            var contentH = scroller.scrollHeight;
+
+            // Nothing to scroll — park the thumb.
+            if (contentH <= visibleH + 1) {
+                track.classList.add('is-idle');
+                return;
+            }
+            track.classList.remove('is-idle');
+
+            var trackH = track.clientHeight;
+            var ratio  = visibleH / contentH;
+            var thumbH = Math.max(Math.round(trackH * ratio), 10); // min-height
+
+            // The thumb travels the track minus its own height, while the
+            // content travels scrollHeight minus one viewport. Mapping between
+            // those two ranges is what keeps the thumb in step with the content
+            // at both ends.
+            var maxScroll = contentH - visibleH;
+            var maxTop    = trackH - thumbH;
+            var top       = maxScroll > 0
+                ? Math.round((scroller.scrollTop / maxScroll) * maxTop)
+                : 0;
+
+            thumb.style.height = thumbH + 'px';
+            thumb.style.top = top + 'px';
+        }
+
+        function flash() {
+            thumb.classList.add('is-visible');
+            window.clearTimeout(hideTimer);
+            hideTimer = window.setTimeout(function () {
+                thumb.classList.remove('is-visible');
+            }, 800);
+        }
+
+        scroller.addEventListener('scroll', function () {
+            update();
+            flash();
+        }, { passive: true });
+
+        // The scroller's own box changes with the viewport; its CONTENT changes
+        // as file rows come and go. ResizeObserver on the scroller catches the
+        // first, and the caller calls update() on add/remove for the second.
+        if (window.ResizeObserver) {
+            new ResizeObserver(update).observe(scroller);
+        }
+        window.addEventListener('resize', update);
+
+        // --- drag the thumb ---
+        thumb.addEventListener('mousedown', function (e) {
+            e.preventDefault();          // don't select text while dragging
+            dragging = true;
+            dragStartY = e.clientY;
+            dragStartScroll = scroller.scrollTop;
+            thumb.classList.add('is-dragging');
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', function (e) {
+            if (!dragging) { return; }
+
+            var trackH = track.clientHeight;
+            var thumbH = thumb.offsetHeight;
+            var maxTop = trackH - thumbH;
+            if (maxTop <= 0) { return; }
+
+            // Invert the same mapping used in update(): thumb pixels -> content
+            // pixels, so a drag of the whole track scrolls the whole content.
+            var maxScroll = scroller.scrollHeight - scroller.clientHeight;
+            var delta = e.clientY - dragStartY;
+
+            scroller.scrollTop = dragStartScroll + (delta / maxTop) * maxScroll;
+        });
+
+        document.addEventListener('mouseup', function () {
+            if (!dragging) { return; }
+            dragging = false;
+            thumb.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+        });
+
+        return { update: update };
+    }
+
     // ------------------------------------------------------------------ setup
 
     function init(root) {
@@ -330,13 +433,26 @@
             modal.hide();
         });
 
-        // Keep the scroll position at the newest row as files are added.
+        // Custom scrollbar on the modal body (see attachScrollbar).
         var body = root.querySelector('.pcu-modal-body');
+        var sb = attachScrollbar(
+            body,
+            root.querySelector('.pcu-sb-track'),
+            root.querySelector('.pcu-sb-thumb')
+        );
+
+        // Keep the newest row in view, and resize the thumb for the new content.
         dz.on('addedfile', function () {
             body.scrollTop = body.scrollHeight;
+            sb.update();
+        });
+
+        dz.on('removedfile', function () {
+            sb.update();
         });
 
         syncUi();
+        sb.update();
 
         return { dz: dz, modal: modal };
     }
