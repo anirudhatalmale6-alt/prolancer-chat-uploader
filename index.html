@@ -215,6 +215,11 @@
 <script>
     window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 50 };
     window.PCU_EMOJI  = { url: 'assets/emoji-data.json' };
+    // WordPress prints this on every page. The picker reads svgUrl from it so a
+    // flag in the picker is the same artwork as a flag in a message.
+    window._wpemojiSettings = {
+        svgUrl: 'https://s.w.org/images/core/emoji/17.0.2/svg/', svgExt: '.svg'
+    };
     // On the real site this is the plugin's own images/loader.gif — the same
     // file every other loader on the site uses.
     window.PCU_VIEWER = { spinner: 'fixtures/loader.gif' };

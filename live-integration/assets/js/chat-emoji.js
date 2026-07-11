@@ -65,24 +65,79 @@
     }
 
     /**
+     * Emoji as CHARACTERS, not images — and why the picker opts out of
+     * WordPress's emoji handling entirely.
+     * ------------------------------------------------------------------------
+     * WordPress ships wp-emoji-release.js, which rewrites emoji characters in
+     * the page as <img> (Twemoji) whenever the browser cannot draw them — and
+     * it watches the DOM, so it pounced on all ~1,900 buttons the moment the
+     * picker first opened. That meant ~1,900 SVG requests to s.w.org and ~1,900
+     * image decodes, all at once, and the grid painted half-drawn while it
+     * churned. That is what "icons are cut off on first open" was.
+     *
+     * So the popup carries `wp-exclude-emoji`, WordPress's own opt-out class,
+     * and the emoji stay as text drawn by the system font: nothing to download,
+     * nothing to decode, and the panel is complete the instant it opens.
+     *
+     * The one thing a system font genuinely cannot draw is a COUNTRY FLAG —
+     * Windows ships no glyphs for them and renders the letter pair instead
+     * ("GB"). Those, and only those, are rendered as images, and lazily: they
+     * live at the bottom of the list, so nothing is fetched until someone
+     * actually scrolls to the Flags tab.
+     */
+
+    // WordPress tells us where its emoji images live; we borrow the same ones,
+    // so a flag in the picker looks exactly like that flag in a message.
+    var WPE = window._wpemojiSettings || {};
+
+    /**
+     * A flag the system font cannot draw: a regional-indicator pair (🇬🇧), or a
+     * subdivision flag, which is a black flag followed by TAG characters (🏴󠁧󠁢󠁳󠁣󠁴󠁿).
+     * Everything else — 🏁 🚩 🎌 🏳️‍🌈 — draws natively and is left as text.
+     */
+    function isFlag(emoji) {
+        var first = emoji.codePointAt(0);
+
+        return (first >= 0x1F1E6 && first <= 0x1F1FF) || first === 0x1F3F4;
+    }
+
+    /**
+     * Twemoji's filename for an emoji: codepoints in lowercase hex, joined by
+     * "-". The variation selector U+FE0F is dropped UNLESS the emoji is a
+     * zero-width-joiner sequence — that is twemoji's own rule, and getting it
+     * wrong is a 404.
+     */
+    function codePoints(emoji) {
+        var text = emoji.indexOf('\u200D') < 0 ? emoji.replace(/\uFE0F/g, '') : emoji;
+        var out = [];
+
+        for (var i = 0; i < text.length;) {
+            var cp = text.codePointAt(i);
+            out.push(cp.toString(16));
+            i += cp > 0xFFFF ? 2 : 1;
+        }
+
+        return out.join('-');
+    }
+
+    function flagImage(emoji) {
+        if (!WPE.svgUrl) { return emoji; }        // no emoji CDN: text is all we have
+
+        // loading="lazy" is the whole point — the Flags tab is far down the
+        // scroll, so these are not fetched until someone goes looking.
+        return '<img class="pcu-emoji-img" loading="lazy" alt="' + emoji + '" src="' +
+               WPE.svgUrl + codePoints(emoji) + (WPE.svgExt || '.svg') + '">';
+    }
+
+    /**
      * One emoji button.
      *
-     * The character is written to BOTH the button's text and a data-emoji
-     * attribute, and every read goes through the attribute.
-     *
-     * WordPress ships wp-emoji-release.js, which rewrites emoji characters in
-     * the page as <img class="emoji"> (Twemoji) whenever the browser cannot
-     * draw them itself — Windows cannot draw flag emoji, so this fires for most
-     * Windows users, and it fires on our buttons too because it watches the DOM
-     * for new nodes. Once it has run the button holds an <img> and no text at
-     * all, so button.textContent is EMPTY and inserting it inserts nothing.
-     *
-     * The attribute survives that rewrite. Leave WordPress to it — swapping in
-     * an image is the only way flags render on Windows at all.
+     * data-emoji carries the character, and every read goes through it — the
+     * face of the button may be an <img> with no text in it at all.
      */
     function cell(emoji) {
         return '<button type="button" class="pcu-emoji" tabindex="-1" data-emoji="' +
-               emoji + '">' + emoji + '</button>';
+               emoji + '">' + (isFlag(emoji) ? flagImage(emoji) : emoji) + '</button>';
     }
 
     function charOf(button) {
@@ -190,7 +245,9 @@
 
         function build(GROUPS) {
             pop = document.createElement('div');
-            pop.className = 'pcu-emoji-pop';
+            // wp-exclude-emoji: WordPress's own opt-out. Without it, its
+            // MutationObserver rewrites every emoji in here as a remote image.
+            pop.className = 'pcu-emoji-pop wp-exclude-emoji';
             pop.setAttribute('role', 'dialog');
             pop.setAttribute('aria-label', 'Emoji');
 

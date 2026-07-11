@@ -144,27 +144,40 @@ def main():
             'g => g.scrollWidth > g.closest(".pcu-emoji-body").clientWidth + 1')
         check('emoji grid does not overflow sideways', not overflows)
 
-        # 3. WordPress rewrites emoji characters as <img class="emoji"> (Twemoji)
-        #    when the browser can't draw them — Windows can't draw flags, so it
-        #    fires for most Windows users. The button is then left with an image
-        #    and NO TEXT, so reading textContent inserts nothing. Do exactly what
-        #    wp-emoji-release.js does, and the pick must still work.
-        page.evaluate("""() => {
-          document.querySelectorAll('.pcu-emoji').forEach(b => {
-            b.innerHTML = '<img class="emoji" alt="' + b.textContent + '" src="data:image/svg+xml,' +
-                          '%3Csvg xmlns=%27http://www.w3.org/2000/svg%27/%3E">';
-          });
-        }""")
-        page.wait_for_timeout(100)
+        # 3. WordPress's emoji script rewrites emoji characters into remote
+        #    <img> tags, and it WATCHES THE DOM — so it pounced on all ~1,900
+        #    buttons the moment the picker first opened. ~1,900 SVG fetches and
+        #    decodes at once, and the grid painted half-drawn while it churned:
+        #    that was the "icons are cut off on first open" report.
+        #
+        #    The popup now carries WordPress's own opt-out class, so the emoji
+        #    stay as text and the panel is complete the instant it opens.
+        check('picker opts out of WordPress emoji rewriting',
+              pop.evaluate('n => n.classList.contains("wp-exclude-emoji")'))
 
-        swapped = page.locator('.pcu-emoji').nth(3)
-        check('WordPress leaves the button with no text at all',
-              swapped.evaluate('n => n.textContent') == '')
+        smiley = page.locator('.pcu-emoji-section').nth(1).locator('.pcu-emoji').first
+        check('ordinary emoji are text, not remote images',
+              smiley.evaluate('n => !!n.textContent.trim() && !n.querySelector("img")'))
+
+        # Country flags are the ONE thing a system font can't draw (Windows has
+        # no glyphs for them), so those, and only those, are images — and lazy,
+        # so nothing is fetched until someone scrolls to the Flags tab.
+        flags = page.locator('.pcu-emoji-section').last.locator('.pcu-emoji img')
+        check('country flags fall back to images', flags.count() > 200,
+              '%d' % flags.count())
+        check('and they are lazy-loaded',
+              flags.first.get_attribute('loading') == 'lazy')
+
+        # A flag button holds an image and NO TEXT — so reading textContent would
+        # insert nothing. data-emoji is what makes the pick work.
+        flag_btn = page.locator('.pcu-emoji-section').last.locator('.pcu-emoji').nth(20)
+        check('a flag button has no text at all',
+              flag_btn.evaluate('n => n.textContent') == '')
 
         page.fill('textarea[name="message"]', '')
-        want = swapped.get_attribute('data-emoji')
-        swapped.click()
-        check('emoji still inserts once WordPress has swapped it for an image',
+        want = flag_btn.get_attribute('data-emoji')
+        flag_btn.click()
+        check('picking an image-backed flag still inserts the character',
               page.input_value('textarea[name="message"]') == want,
               repr(page.input_value('textarea[name="message"]')))
 

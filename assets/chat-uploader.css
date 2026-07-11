@@ -1023,19 +1023,18 @@
     background: var(--pcu-primary-soft);
 }
 
-/* WordPress rewrites emoji characters as <img class="emoji"> (Twemoji) whenever
-   the browser cannot draw them itself — Windows cannot draw flag emoji, so this
-   fires for most Windows users, and it fires on the picker's buttons too.
+/* Country flags are the one thing a system font cannot draw — Windows ships no
+   glyphs for them — so those, and only those, are rendered as images.
 
-   Size the image to the glyph it replaced. Without this the theme's image
-   sizing takes over and the emoji swell to fill the whole cell. WordPress's own
-   `img.emoji` rule is `!important`, so match it rather than fight it: 1em of
-   the button's 23px font is 23px, which is exactly the glyph size. */
+   They must be sized explicitly. WordPress's own `img.emoji` rule is NOT on
+   this site's pages, so without this the theme's `img { max-width: 100%; }`
+   takes over and each flag swells to fill its whole cell. */
 .pcu-emoji-pop .pcu-emoji img {
-    width: 1em;
-    height: 1em;
+    width: 1.15em;                  /* a flag is wider than it is tall */
+    height: 1.15em;
     max-width: none;
     margin: 0;
+    object-fit: contain;
     vertical-align: middle;
 }
 
