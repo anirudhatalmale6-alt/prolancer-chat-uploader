@@ -111,6 +111,87 @@ function pcu_asset_version( $path ) {
 }
 
 /**
+ * Let a message carry files with no text.
+ * ----------------------------------------------------------------------------
+ * The plugin's send handlers refuse an empty message:
+ *
+ *     if ( $params['message'] != '' ) { ...insert... }
+ *     else -> "The message field cannot be empty"
+ *
+ * The Upload button now sends attachments on their own, so that check has to
+ * give way — but only when files are actually attached. A genuinely empty
+ * message with no files must still be rejected.
+ *
+ * Rather than reimplement the plugin's insert (and its emails and
+ * notifications), we wrap its handler: if the message is blank but attachments
+ * are present, hand it a single space so its check passes, then call it. The
+ * plugin runs the value through sanitize_text_field(), which trims — so what
+ * lands in the database is a genuinely empty string, not a fake placeholder.
+ *
+ * The plugin itself is never edited, so it stays updatable.
+ */
+function pcu_allow_attachment_only_messages() {
+	// If the plugin is ever deactivated, leave everything alone rather than
+	// swapping its handler for one that would then call a missing function.
+	if ( ! function_exists( 'prolancer_ajax_send_service_message' ) ) {
+		return;
+	}
+
+	remove_action( 'wp_ajax_prolancer_ajax_send_service_message', 'prolancer_ajax_send_service_message' );
+	add_action( 'wp_ajax_prolancer_ajax_send_service_message', 'pcu_send_service_message' );
+
+	remove_action( 'wp_ajax_prolancer_ajax_send_project_message', 'prolancer_ajax_send_project_message' );
+	add_action( 'wp_ajax_prolancer_ajax_send_project_message', 'pcu_send_project_message' );
+}
+add_action( 'init', 'pcu_allow_attachment_only_messages' );
+
+/**
+ * Service chat: allow attachments with no text, then defer to the plugin.
+ */
+function pcu_send_service_message() {
+	pcu_soften_empty_message();
+	prolancer_ajax_send_service_message();
+}
+
+/**
+ * Project chat: same.
+ */
+function pcu_send_project_message() {
+	pcu_soften_empty_message();
+	prolancer_ajax_send_project_message();
+}
+
+/**
+ * If the message is blank but files are attached, make it pass the plugin's
+ * non-empty check. Touches $_POST ONLY in that exact case — a real message is
+ * left completely alone, so nothing can mangle a user's text.
+ */
+function pcu_soften_empty_message() {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- the plugin
+	// handler we hand off to verifies its own nonce.
+	if ( empty( $_POST['message_data'] ) ) {
+		return;
+	}
+
+	parse_str( $_POST['message_data'], $params );
+
+	$message    = isset( $params['message'] ) ? trim( $params['message'] ) : '';
+	$attachment = isset( $params['attachment_id'] ) ? trim( $params['attachment_id'] ) : '';
+
+	// Text present, or no files: leave it exactly as it came in.
+	if ( '' !== $message || '' === $attachment ) {
+		return;
+	}
+
+	// A single space clears `!= ''`; sanitize_text_field() then trims it away,
+	// so the stored message really is empty.
+	$params['message'] = ' ';
+
+	$_POST['message_data'] = http_build_query( $params );
+	// phpcs:enable
+}
+
+/**
  * Parse the stored attachment_id into a list of IDs.
  *
  * Accepts both the new "12,13,14" and the legacy single "12".
