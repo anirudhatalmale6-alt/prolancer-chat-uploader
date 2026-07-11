@@ -10,3 +10,8 @@
 	// Chat attachment uploader (icon -> modal -> drag & drop, multiple files
 	// per message) — added by Anirudha.
 	require_once get_stylesheet_directory() . '/inc/pcu-chat-uploader.php';
+
+	// SVG sanitiser. Redux Framework allows SVG uploads site-wide, and an SVG
+	// can carry JavaScript — this strips it. See the file for the full why.
+	// Added by Anirudha.
+	require_once get_stylesheet_directory() . '/inc/pcu-svg-guard.php';
