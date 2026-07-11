@@ -19,10 +19,12 @@
     var settings = {
         uploadUrl:     CFG.uploadUrl     || '/wp-admin/admin-ajax.php',
         action:        CFG.action        || 'prolancer_ajax_upload_message_attachment',
-        maxFilesize:   CFG.maxFilesize   || 10,          // MB, per file
+        maxFilesize:   CFG.maxFilesize   || 50,          // MB, per file
         maxFiles:      CFG.maxFiles      || 10,
         parallel:      CFG.parallel      || 3,           // concurrent uploads
-        acceptedFiles: CFG.acceptedFiles || 'image/*,.pdf,.doc,.docx,.ppt,.pptx'
+        // Fallback only — the real list is PCU_CONFIG.acceptedFiles, built by
+        // pcu_accepted_files() in PHP so there is a single source of truth.
+        acceptedFiles: CFG.acceptedFiles || 'image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.zip'
     };
 
     var MB = 1024 * 1024;

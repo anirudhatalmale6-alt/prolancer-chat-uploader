@@ -24,6 +24,42 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * What the chat accepts, and how big.
+ *
+ * ONE source of truth: the <input accept="…">, the JS validation and the footer
+ * hint all read from here, so the three can never drift apart.
+ *
+ * The server is the real gate. WordPress already permits video and zip, and this
+ * host allows 256 MB uploads (upload_max_filesize / post_max_size), so 50 MB is a
+ * deliberate policy ceiling, not a technical one: it comfortably covers a phone
+ * video without letting anyone drop a 200 MB file into a chat thread.
+ */
+function pcu_accepted_files() {
+	$types = 'image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.zip';
+
+	/**
+	 * Filter the accepted file types (an HTML `accept` list).
+	 *
+	 * @param string $types Comma-separated accept list.
+	 */
+	return (string) apply_filters( 'pcu_accepted_files', $types );
+}
+
+/**
+ * Max size per file, in MB.
+ */
+function pcu_max_filesize_mb() {
+	return (int) apply_filters( 'pcu_max_filesize_mb', 50 );
+}
+
+/**
+ * Max number of files per message.
+ */
+function pcu_max_files() {
+	return (int) apply_filters( 'pcu_max_files', 10 );
+}
+
+/**
  * Dashboard screens that show a chat with attachments.
  */
 function pcu_chat_screens() {
@@ -83,9 +119,9 @@ function pcu_enqueue_assets() {
 			// the (now hidden) file input the plugin already renders.
 			'uploadUrl'     => admin_url( 'admin-ajax.php' ),
 			'action'        => 'prolancer_ajax_upload_message_attachment',
-			'maxFiles'      => (int) apply_filters( 'pcu_max_files', 10 ),
-			'maxFilesize'   => (int) apply_filters( 'pcu_max_filesize_mb', 10 ),
-			'acceptedFiles' => 'image/*,.pdf,.doc,.docx,.ppt,.pptx',
+			'maxFiles'      => pcu_max_files(),
+			'maxFilesize'   => pcu_max_filesize_mb(),
+			'acceptedFiles' => pcu_accepted_files(),
 		)
 	);
 }
@@ -316,7 +352,7 @@ function pcu_render_modal() {
 					// never opens the file dialog.
 					?>
 					<input type="file" class="pcu-input" multiple hidden
-						   accept="image/*,.pdf,.doc,.docx,.ppt,.pptx">
+						   accept="<?php echo esc_attr( pcu_accepted_files() ); ?>">
 
 					<div class="pcu-dropzone">
 						<div class="pcu-dz-icon">
@@ -353,8 +389,8 @@ function pcu_render_modal() {
 						printf(
 							/* translators: 1: max file count, 2: max size in MB */
 							esc_html__( 'Max %1$d files · %2$d MB each', 'prolancer' ),
-							(int) apply_filters( 'pcu_max_files', 10 ),
-							(int) apply_filters( 'pcu_max_filesize_mb', 10 )
+							pcu_max_files(),
+							pcu_max_filesize_mb()
 						);
 						?>
 					</span>

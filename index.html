@@ -100,7 +100,7 @@
             <div class="pcu-modal-body">
 
                 <input type="file" class="pcu-input" multiple hidden
-                       accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                       accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.zip">
 
                 <div class="pcu-dropzone">
                     <div class="pcu-dz-icon">
@@ -126,7 +126,7 @@
             </div>
 
             <div class="pcu-modal-footer">
-                <span class="pcu-footer-hint">Max 10 files &middot; 10&nbsp;MB each</span>
+                <span class="pcu-footer-hint">Max 10 files &middot; 50&nbsp;MB each</span>
                 <button type="button" class="pcu-btn-close">Close</button>
                 <button type="button" class="pcu-btn-upload" disabled>
                     <span class="pcu-btn-label">Upload</span>
@@ -138,7 +138,7 @@
 </div>
 
 <script>
-    window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 10 };
+    window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 50 };
 </script>
 <!-- defer keeps both off the critical path and preserves execution order,
      so the chat page paints without waiting on the uploader. -->
