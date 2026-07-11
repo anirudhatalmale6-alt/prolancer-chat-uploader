@@ -47,8 +47,14 @@ function pcu_accepted_files() {
 		}
 	}
 
+	// ...plus the types WordPress does not carry but a chat wants (see
+	// pcu_extra_mime_types). get_allowed_mime_types() cannot see those here:
+	// they are added for the upload request only, and this runs on a page render.
+	$exts = array_merge( $exts, array_keys( pcu_extra_mime_types() ) );
+
 	// ...then subtract anything that could be executed or scripted.
 	$exts = array_values( array_diff( $exts, pcu_blocked_extensions() ) );
+	$exts = array_unique( $exts );
 	sort( $exts );
 
 	$types = '.' . implode( ',.', $exts );
@@ -101,6 +107,133 @@ function pcu_blocked_extensions() {
 }
 
 /**
+ * Extra types the CHAT accepts, on top of WordPress's own list.
+ *
+ * WordPress ships a deliberately narrow allow-list. It takes a .psd but not the
+ * files that sit next to one (.ai, .eps, .indd); it takes .docx but not a plain
+ * .md; it takes no ebook, no font source, no .json. None of these execute
+ * anywhere — not on the server, not in a browser, not on the machine that
+ * downloads them — so there is no reason a chat cannot carry them.
+ *
+ * Two rules hold this safe:
+ *   1. pcu_blocked_extensions() is still the last word (enforced below), so
+ *      nothing executable can be smuggled in by adding it here.
+ *   2. It applies to CHAT UPLOADS ONLY. The media library, and every other
+ *      uploader on the site, keep WordPress's default list untouched.
+ *
+ * @return array<string,string> extension => MIME type.
+ */
+function pcu_extra_mime_types() {
+	$extra = array(
+		// Text and data
+		'md'     => 'text/markdown',
+		'json'   => 'application/json',
+		'yml'    => 'text/yaml',
+		'yaml'   => 'text/yaml',
+		'sql'    => 'text/plain',
+		'ini'    => 'text/plain',
+		'log'    => 'text/plain',
+		// Design
+		'ai'     => 'application/postscript',
+		'eps'    => 'application/postscript',
+		'indd'   => 'application/x-indesign',
+		'fig'    => 'application/octet-stream',
+		'sketch' => 'application/octet-stream',
+		'xd'     => 'application/octet-stream',
+		// Ebooks
+		'epub'   => 'application/epub+zip',
+		'mobi'   => 'application/x-mobipocket-ebook',
+		'azw3'   => 'application/vnd.amazon.mobi8-ebook',
+		// Archives and disc images
+		'bz2'    => 'application/x-bzip2',
+		'xz'     => 'application/x-xz',
+		'iso'    => 'application/x-iso9660-image',
+	);
+
+	/**
+	 * Filter the extra chat-only file types.
+	 *
+	 * @param array<string,string> $extra extension => MIME type.
+	 */
+	$extra = (array) apply_filters( 'pcu_extra_mime_types', $extra );
+
+	// The block list wins, always — even against this list.
+	return array_diff_key( $extra, array_flip( pcu_blocked_extensions() ) );
+}
+
+/**
+ * Is the request in flight an upload from the chat composer?
+ *
+ * Everything this file relaxes is scoped through here, so nothing it does can
+ * leak into the media library or any other uploader on the site.
+ */
+function pcu_is_chat_upload() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the plugin's
+	// upload handler verifies its own nonce; this only narrows the scope.
+	$action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+
+	return 'prolancer_ajax_upload_message_attachment' === $action;
+}
+
+/**
+ * Hand the extra types to WordPress for the length of a chat upload.
+ *
+ * @param array $mimes Allowed MIME types.
+ * @return array
+ */
+function pcu_allow_extra_mimes( $mimes ) {
+	if ( ! pcu_is_chat_upload() ) {
+		return $mimes;
+	}
+
+	return array_merge( $mimes, pcu_extra_mime_types() );
+}
+add_filter( 'upload_mimes', 'pcu_allow_extra_mimes' );
+
+/**
+ * Stop WordPress's content sniff from discarding the extra types.
+ *
+ * wp_check_filetype_and_ext() reads the file's real MIME with finfo and throws
+ * the upload out if it does not match the one the extension claims. That check
+ * is built for WordPress's own list and cannot be satisfied by ours: libmagic
+ * reports a .ai as PDF, a .sketch as ZIP, a .json as text/plain on one server
+ * and application/json on the next. Every one of those is a mismatch, so every
+ * one of them would be rejected.
+ *
+ * Sniffing is not what keeps the site safe here — the extension is. A .md file
+ * full of PHP is still a .md file: Apache will not run it, and a browser will
+ * not script it. The block list (enforced by extension, below) is the control
+ * that matters, and it runs regardless of this.
+ *
+ * So: for a chat upload, of an extension WE added, that WordPress has just
+ * rejected — put the extension and type back. Nothing else is touched.
+ *
+ * @param array  $data     ext/type/proper_filename, as WP decided them.
+ * @param string $file     Path to the uploaded temp file.
+ * @param string $filename Name it was uploaded under.
+ * @return array
+ */
+function pcu_trust_extra_types( $data, $file, $filename ) {
+	// Not a chat upload, or WordPress was happy with it anyway.
+	if ( ! pcu_is_chat_upload() || ! empty( $data['ext'] ) ) {
+		return $data;
+	}
+
+	$ext   = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+	$extra = pcu_extra_mime_types();   // block list already subtracted
+
+	if ( ! isset( $extra[ $ext ] ) ) {
+		return $data;   // not one of ours — WP's rejection stands
+	}
+
+	$data['ext']  = $ext;
+	$data['type'] = $extra[ $ext ];
+
+	return $data;
+}
+add_filter( 'wp_check_filetype_and_ext', 'pcu_trust_extra_types', 10, 3 );
+
+/**
  * Enforce the block list on the SERVER.
  *
  * The <input accept="…"> and the JavaScript check are conveniences — both are
@@ -115,11 +248,7 @@ function pcu_blocked_extensions() {
  * @return array
  */
 function pcu_block_dangerous_upload( $file ) {
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the plugin's
-	// upload handler verifies its own nonce; this only narrows the scope.
-	$action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
-
-	if ( 'prolancer_ajax_upload_message_attachment' !== $action ) {
+	if ( ! pcu_is_chat_upload() ) {
 		return $file;
 	}
 
