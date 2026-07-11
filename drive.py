@@ -48,8 +48,8 @@ with sync_playwright() as p:
     print('Open after backdrop click:', still_open_backdrop, '| after ESC:', still_open_esc)
 
     # 3. Attach files
-    # Dropzone appends its hidden multi-file input to <body>
-    page.set_input_files('body > input[type=file]', FILES)
+    # our own hidden multi-file input
+    page.set_input_files('.pcu-input', FILES)
     page.wait_for_timeout(1200)
     shot(page, '03-files-attached-thumbnails.png')
 

@@ -41,7 +41,7 @@ with sync_playwright() as p:
 
     # Bytes actually shipped for the uploader
     total = 0
-    for f in ['assets/chat-uploader.css', 'assets/chat-uploader.js', 'vendor/dropzone.min.js']:
+    for f in ['assets/chat-uploader.css', 'assets/chat-uploader.js']:
         n = os.path.getsize(os.path.join(HERE, f))
         total += n
         print('   %-32s %6.1f KB' % (f, n / 1024))
@@ -51,7 +51,7 @@ with sync_playwright() as p:
     page.evaluate("window.__cls = 0")
     page.click('.pcu-attach-btn')
     page.wait_for_timeout(400)
-    page.set_input_files('body > input[type=file]', FILES)
+    page.set_input_files('.pcu-input', FILES)
     page.wait_for_timeout(1500)
     cls_modal = page.evaluate('window.__cls')
     print('Rule 2 — CLS while adding 5 files: %.5f' % cls_modal)
@@ -64,7 +64,7 @@ with sync_playwright() as p:
         pg.wait_for_timeout(400)
         pg.click('.pcu-attach-btn')
         pg.wait_for_timeout(400)
-        pg.set_input_files('body > input[type=file]', FILES)
+        pg.set_input_files('.pcu-input', FILES)
         pg.wait_for_timeout(1200)
 
         overflow = pg.evaluate("""() => ({

@@ -220,23 +220,23 @@
 /* --------------------------------------------------------------------------
    4. Dropzone area
    -------------------------------------------------------------------------- */
+/* Matches Dhonu's own _dropzone.scss: 2px dashed border, 8px radius, 20px pad. */
 .pcu-dropzone {
     border: 2px dashed var(--pcu-border);
-    border-radius: var(--pcu-radius);
+    border-radius: 8px;
     background: #fff;
     padding: 34px 20px;
     text-align: center;
     cursor: pointer;
     transition: border-color .15s ease, background-color .15s ease;
-    min-height: auto;
 }
 
 .pcu-dropzone:hover {
     border-color: var(--pcu-accent);
 }
 
-/* Dropzone.js adds .dz-drag-hover while a file is dragged over the area */
-.pcu-dropzone.dz-drag-hover {
+/* While a file is dragged over the area */
+.pcu-dropzone.is-dragover {
     border-color: var(--pcu-accent);
     background: var(--pcu-accent-soft);
 }
@@ -285,12 +285,6 @@
 
 .pcu-dz-browse:hover {
     background: #f7f8fb;
-}
-
-/* Kill Dropzone's stock preview/message markup — we render our own list */
-.pcu-dropzone .dz-preview,
-.pcu-dropzone .dz-default {
-    display: none !important;
 }
 
 /* --------------------------------------------------------------------------

@@ -91,7 +91,9 @@
             <div class="pcu-scroll-wrap">
             <div class="pcu-modal-body pcu-scroll">
 
-                <form class="pcu-dropzone" action="/upload">
+                <div class="pcu-dropzone">
+                    <input type="file" class="pcu-input" multiple hidden
+                           accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
                     <div class="pcu-dz-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                              stroke-linecap="round" stroke-linejoin="round">
@@ -101,8 +103,8 @@
                     </div>
                     <div class="pcu-dz-title">Drop files here or click to upload.</div>
                     <div class="pcu-dz-sub">You can drag images here, or browse files via the button below.</div>
-                    <span class="pcu-dz-browse" role="button">Browse Images</span>
-                </form>
+                    <button type="button" class="pcu-dz-browse">Browse Images</button>
+                </div>
 
                 <div class="pcu-file-list"></div>
             </div>
@@ -125,7 +127,6 @@
     </div>
 </div>
 
-<script src="vendor/dropzone.min.js" defer></script>
 <script>
     window.PCU_CONFIG = { uploadUrl: '/upload', maxFiles: 10, maxFilesize: 10 };
 </script>

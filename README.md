@@ -1,60 +1,64 @@
 # Prolancer — Chat attachment uploader
 
 Replaces the plain `Choose File` input in the Prolancer chat composer with an
-attach **icon** that opens a **modal** holding a Dropzone-style uploader.
+attach **icon** that opens a **modal** holding a drag-and-drop uploader.
 
-`prolancer-child/` is a drop-in **child theme** — the parent theme is never
-touched, so it stays safe to update.
+**No dependencies.** No Dropzone, no Bootstrap, no jQuery — one CSS file and one
+JS file, **~10 KB gzipped**, loaded only on the chat page.
 
 ## Spec covered
 
 | # | Requirement | Where |
 |---|---|---|
-| 1 | Dropzone tool (Dhonu "Dropzone" look) instead of `Choose File` | `assets/css/chat-uploader.css` |
+| 1 | Dropzone-style tool (Dhonu look) instead of `Choose File` | `chat-uploader.css` |
 | 2 | Attach **icon** in composer; click opens modal | `.pcu-attach-btn` |
-| 3 | Modal closes **only** via the Close button (no backdrop, no ESC) | `makeModal()` — no such handlers exist |
-| 4 | Modal height **fixed**, never grows; scrolls instead | `.pcu-modal-body { max-height: min(58vh, 460px) }` |
-| 5 | Styled scrollbar | `.pcu-scroll` *(placeholder — awaiting client's style)* |
+| 3 | Modal closes **only** via Close button (no backdrop, no ESC) | `makeModal()` — no such handlers exist |
+| 4 | Modal height **fixed**, never grows; scrolls instead | `.pcu-scroll-wrap { max-height: min(58vh, 460px) }` |
+| 5 | Styled scrollbar, matching Dhonu | `attachScrollbar()` |
 | 6 | `Upload` in footer, **dimmed until files attached** | `.pcu-btn-upload[disabled]` |
 | 7 | Upload sends files **to the chat area** | `pcu:uploaded` event |
-| 8 | **Thumbnails** for media files | `dz.on('thumbnail')` |
+| 8 | **Thumbnails** for media files | `makeThumb()` |
 | 9 | No "Successfully uploaded!" dialog | removed by design |
-| 10 | **One** spinner, reused for every async action | `.pcu-spinner` |
+| 10 | **One** spinner, reused for every action | `.pcu-spinner` |
 
 ## Client rules — how each is met
 
 | Rule | How |
 |---|---|
-| 1. No messy code | Namespaced `.pcu-`, one CSS + one JS file, documented, PHP passes `php -l` |
-| 2. No shaking/shifting on load | **Measured CLS = 0.000** on load and while adding files. Every box has explicit dimensions; the modal is `display:none` until opened |
-| 3. No page slow-down | Assets load **only on the chat screen** (`prolancer_child_is_chat_screen()`), both scripts `defer`, so nothing blocks render. Every other page is untouched |
-| 4. No style-after-style | **One** stylesheet for the uploader. Bootstrap and `dropzone.min.css` are *not* loaded — every Dropzone visual is overridden, so shipping its CSS would only paint styles we replace. Child CSS declares the parent as a dependency so the order can never invert |
-| 5. All work on child theme | Everything is in `prolancer-child/` |
-| 6. Stays responsive | Verified at 390px and 768px: no horizontal overflow, buttons reachable. Full-bleed sheet on phones |
+| 1. No messy code | Namespaced `.pcu-`, one CSS + one JS, documented, PHP passes `php -l` |
+| 2. No shaking/shifting | **Measured CLS = 0.000** on load and while adding files |
+| 3. No slow-down | Chat page only; `defer`; zero dependencies (~10 KB gz, down from ~45 KB) |
+| 4. No style-after-style | **One** stylesheet, and the parent sheet is *not* re-enqueued (the existing child theme already does that — doing it twice is what causes the flash) |
+| 5. Child theme only | Additive package for the existing `prolancer-child`; parent untouched |
+| 6. Responsive | Verified 390px + 768px: no horizontal overflow, buttons reachable |
+
+## Scrollbar — why it is drawn, not native
+
+Dhonu uses **SimpleBar**, and its values are matched exactly (11px track, 6px
+thumb, `#a2adb7` @ 50%, 7px radius — taken from Dhonu's `_simplebar.scss`).
+
+It is drawn as a real element rather than styled natively because a native
+scrollbar cannot look the same on every platform: on macOS it is an auto-hiding
+overlay, so a Mac user would never see the style at all. That is the same reason
+Dhonu ships SimpleBar. This does it in ~60 lines, with no library.
+
+Two traps worth recording:
+- Chrome **ignores `::-webkit-scrollbar` entirely** if `scrollbar-width` or
+  `scrollbar-color` is set on the same element.
+- **Headless Chromium never renders classic scrollbars**, so a native one cannot
+  be screenshotted or asserted in a browser test. A drawn one can.
 
 ## Install
 
-1. Copy `prolancer-child/` into `wp-content/themes/`.
-2. Activate **Prolancer Child** (or merge the two PHP files into your existing child theme).
-3. Confirm the chat-screen check in `prolancer_child_is_chat_screen()` matches
-   the real messages page, then render the markup in the composer.
+See `chat-uploader-package/README.txt`. The site already has an active
+`prolancer-child` theme, so the package is additive — it overwrites nothing.
 
-Uploads go through `admin-ajax.php` → `pcu_upload_attachment`, which checks the
-nonce, requires `upload_files`, enforces the size cap and validates the **sniffed**
-MIME type (never the browser-supplied one) before handing the file to
-`media_handle_upload()`.
-
-## Demo
+## Demo & tests
 
 ```sh
 python3 server.py       # http://127.0.0.1:8811
-python3 drive.py        # functional walkthrough + screenshots
-python3 rules.py        # CLS / asset / responsive checks
+python3 drive.py        # full walkthrough + screenshots
+python3 dragdrop.py     # native drag-and-drop, incl. rejecting a .exe
+python3 scrollbar.py    # scrollbar renders, tracks, drags
+python3 rules.py        # CLS / asset count / responsive
 ```
-
-## Gotcha worth knowing
-
-Dropzone with `autoProcessQueue: false` uploads only the first `parallelUploads`
-batch and then **stalls** — it re-kicks its own queue only when
-`autoProcessQueue` is `true`, so `queuecomplete` never fires and the remaining
-files silently never send. The `complete` handler drives the queue manually.

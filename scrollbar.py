@@ -24,7 +24,7 @@ with sync_playwright() as p:
     idle = page.locator('.pcu-sb-track').evaluate("t => t.classList.contains('is-idle')")
     print('Empty modal — thumb hidden (is-idle):', idle)
 
-    page.set_input_files('body > input[type=file]', FILES)
+    page.set_input_files('.pcu-input', FILES)
     page.wait_for_timeout(1200)
 
     def state():
