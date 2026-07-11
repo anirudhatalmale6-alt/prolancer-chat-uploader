@@ -2,8 +2,8 @@
 """
 Generate child-theme template overrides from the ProLancer plugin templates.
 
-Two surgical edits per template — everything else is copied byte-for-byte, so a
-plugin update can be re-patched by re-running this rather than hand-merging:
+Three surgical edits per template — everything else is copied byte-for-byte, so
+a plugin update can be re-patched by re-running this rather than hand-merging:
 
   1. The single-attachment "Download" block becomes pcu_render_attachments(),
      which renders EVERY id in the comma-separated attachment_id column.
@@ -11,6 +11,10 @@ plugin update can be re-patched by re-running this rather than hand-merging:
   2. The attach icon + modal is printed right after the plugin's file input.
      That input stays in the page (CSS hides it) because it carries the post_id
      and nonce the upload endpoint needs.
+
+  3. esc_html() becomes pcu_message_text(). esc_html() leaves existing HTML
+     entities alone, so a message typed as "&#xb6;" rendered as a pilcrow after
+     a reload — the stored chat disagreed with the live one.
 """
 import os
 import re
@@ -33,6 +37,11 @@ RENDER_ONLY = [
     'buyer/completed-project-details.php',
     'seller/completed-project-details.php',
 ]
+# The inbox chat: no composer, no attachments — but it shows stored messages, so
+# it needs the escaping fix like every other list.
+TEXT_ONLY = [
+    'message/message.php',
+]
 
 # The plugin's single-attachment download block, in all its whitespace variants.
 ATTACH_BLOCK = re.compile(
@@ -49,9 +58,14 @@ FILE_INPUT = re.compile(
     re.DOTALL,
 )
 
+# How the plugin echoes a stored message, with and without inner spaces.
+MESSAGE_ECHO = re.compile(
+    r'esc_html\(\s*\$message->message\s*\)'
+)
+
 fails = []
 
-for rel in COMPOSER + RENDER_ONLY:
+for rel in COMPOSER + RENDER_ONLY + TEXT_ONLY:
     src = os.path.join(SRC, rel)
     if not os.path.exists(src):
         fails.append('%s: MISSING' % rel)
@@ -61,8 +75,13 @@ for rel in COMPOSER + RENDER_ONLY:
     orig = code
 
     # --- edit 1: multi-attachment rendering ---
-    code, n_attach = ATTACH_BLOCK.subn(
-        '<?php pcu_render_attachments( $message->attachment_id ); ?>', code)
+    n_attach = 0
+    if rel not in TEXT_ONLY:
+        code, n_attach = ATTACH_BLOCK.subn(
+            '<?php pcu_render_attachments( $message->attachment_id ); ?>', code)
+
+    # --- edit 3: show a message exactly as it was typed ---
+    code, n_echo = MESSAGE_ECHO.subn('pcu_message_text( $message->message )', code)
 
     # --- edit 2: attach icon + modal after the file input ---
     n_input = 0
@@ -85,10 +104,14 @@ for rel in COMPOSER + RENDER_ONLY:
 
     # Guard rails: if a pattern stopped matching (e.g. plugin update changed the
     # markup), fail loudly instead of silently shipping an unpatched template.
-    if n_attach == 0:
+    if n_attach == 0 and rel not in TEXT_ONLY:
         fails.append('%s: attachment block NOT FOUND' % rel)
     if rel in COMPOSER and n_input == 0:
         fails.append('%s: file input NOT FOUND' % rel)
+    if n_echo == 0:
+        fails.append('%s: message echo NOT FOUND' % rel)
+    if 'esc_html($message->message)' in code.replace(' ', ''):
+        fails.append('%s: a raw esc_html() message echo survived' % rel)
     if code == orig:
         fails.append('%s: nothing changed' % rel)
 
@@ -113,7 +136,7 @@ for rel in COMPOSER + RENDER_ONLY:
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     open(dst, 'w', encoding='utf-8').write(code)
 
-    print('%-42s attachments:%d  composer:%d' % (rel, n_attach, n_input))
+    print('%-42s attachments:%d  composer:%d  messages:%d' % (rel, n_attach, n_input, n_echo))
 
 if fails:
     print('\nFAILED:')

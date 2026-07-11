@@ -164,7 +164,7 @@ if (is_user_logged_in() && $order_id) {
         <div class="row">
           <?php if ($is_sender) { ?>
             <div class="col-9">
-              <p><?php echo esc_html($message->message); ?></p>
+              <p><?php echo pcu_message_text( $message->message ); ?></p>
               <?php pcu_render_attachments( $message->attachment_id ); ?>
             </div>
             <div class="col-3 text-end">
@@ -207,7 +207,7 @@ if (is_user_logged_in() && $order_id) {
               </a>
             </div>
             <div class="col-9">
-              <p><?php echo esc_html($message->message); ?></p>
+              <p><?php echo pcu_message_text( $message->message ); ?></p>
               <?php pcu_render_attachments( $message->attachment_id ); ?>
             </div>
           <?php } ?>

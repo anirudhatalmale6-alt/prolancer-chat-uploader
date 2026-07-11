@@ -260,7 +260,7 @@ function pcu_asset_version( $path ) {
  *
  * The plugin itself is never edited, so it stays updatable.
  */
-function pcu_allow_attachment_only_messages() {
+function pcu_wrap_send_handlers() {
 	// If the plugin is ever deactivated, leave everything alone rather than
 	// swapping its handler for one that would then call a missing function.
 	if ( ! function_exists( 'prolancer_ajax_send_service_message' ) ) {
@@ -272,14 +272,18 @@ function pcu_allow_attachment_only_messages() {
 
 	remove_action( 'wp_ajax_prolancer_ajax_send_project_message', 'prolancer_ajax_send_project_message' );
 	add_action( 'wp_ajax_prolancer_ajax_send_project_message', 'pcu_send_project_message' );
+
+	// The inbox chat has no attachments, but it shares the payload bug below.
+	remove_action( 'wp_ajax_prolancer_ajax_messages', 'prolancer_ajax_messages' );
+	add_action( 'wp_ajax_prolancer_ajax_messages', 'pcu_send_inbox_message' );
 }
-add_action( 'init', 'pcu_allow_attachment_only_messages' );
+add_action( 'init', 'pcu_wrap_send_handlers' );
 
 /**
  * Service chat: allow attachments with no text, then defer to the plugin.
  */
 function pcu_send_service_message() {
-	pcu_soften_empty_message();
+	pcu_normalize_message_payload();
 	prolancer_ajax_send_service_message();
 }
 
@@ -287,38 +291,102 @@ function pcu_send_service_message() {
  * Project chat: same.
  */
 function pcu_send_project_message() {
-	pcu_soften_empty_message();
+	pcu_normalize_message_payload();
 	prolancer_ajax_send_project_message();
 }
 
 /**
- * If the message is blank but files are attached, make it pass the plugin's
- * non-empty check. Touches $_POST ONLY in that exact case — a real message is
- * left completely alone, so nothing can mangle a user's text.
+ * Inbox chat: no attachments here, so this only unslashes the payload.
  */
-function pcu_soften_empty_message() {
+function pcu_send_inbox_message() {
+	pcu_normalize_message_payload();
+	prolancer_ajax_messages();
+}
+
+/**
+ * Clean up the send payload before the plugin parses it.
+ * ----------------------------------------------------------------------------
+ * Two things happen here, both on $_POST['message_data'] — the URL-encoded
+ * string the plugin feeds straight to parse_str().
+ *
+ * 1. UNSLASH.
+ *    WordPress adds slashes to $_POST, and the plugin never takes them off.
+ *    jQuery's serialize() leaves an apostrophe unencoded, so "Nando's" arrives
+ *    as "Nando\'s" — and that backslash was being stored, and shown back on
+ *    every reload. Undo WordPress's slashing once, here.
+ *
+ *    Only the apostrophe is affected in practice: encodeURIComponent() escapes
+ *    the double quote and the backslash, so those reach us as %22 and %5C and
+ *    addslashes() never sees them.
+ *
+ * 2. ALLOW A FILE-ONLY MESSAGE.
+ *    The plugin's handlers refuse an empty message:
+ *
+ *        if ( $params['message'] != '' ) { ...insert... }
+ *        else -> "The message field cannot be empty"
+ *
+ *    The Upload button now sends attachments on their own, so that check has to
+ *    give way — but only when files are actually attached. A genuinely empty
+ *    message with no files must still be rejected. Hand the plugin a single
+ *    space so its check passes; its own sanitize_text_field() trims it back to
+ *    '' before the insert, so the stored message really is empty.
+ *
+ * Rewriting the payload rather than reimplementing the insert keeps the
+ * plugin's emails and notifications intact, and keeps the plugin updatable —
+ * it is never edited.
+ */
+function pcu_normalize_message_payload() {
 	// phpcs:disable WordPress.Security.NonceVerification.Missing -- the plugin
 	// handler we hand off to verifies its own nonce.
 	if ( empty( $_POST['message_data'] ) ) {
 		return;
 	}
 
-	parse_str( $_POST['message_data'], $params );
+	parse_str( wp_unslash( $_POST['message_data'] ), $params );
 
 	$message    = isset( $params['message'] ) ? trim( $params['message'] ) : '';
 	$attachment = isset( $params['attachment_id'] ) ? trim( $params['attachment_id'] ) : '';
 
-	// Text present, or no files: leave it exactly as it came in.
-	if ( '' !== $message || '' === $attachment ) {
-		return;
+	if ( '' === $message && '' !== $attachment ) {
+		$params['message'] = ' ';
 	}
 
-	// A single space clears `!= ''`; sanitize_text_field() then trims it away,
-	// so the stored message really is empty.
-	$params['message'] = ' ';
-
-	$_POST['message_data'] = http_build_query( $params );
+	// http_build_query() URL-encodes every value, so the rebuilt string holds no
+	// bare quote or backslash for wp_slash() to escape — it stays byte-identical
+	// either way. Re-slash anyway: $_POST is slashed by contract, and the plugin
+	// (or any other filter after us) is entitled to rely on that.
+	$_POST['message_data'] = wp_slash( http_build_query( $params ) );
 	// phpcs:enable
+}
+
+/**
+ * Render a stored chat message exactly as it was typed.
+ * ----------------------------------------------------------------------------
+ * Two things are true of this column, and the plugin's esc_html() only copes
+ * with one of them:
+ *
+ *  - sanitize_text_field() runs the text through esc_html() on the way IN
+ *    (via wp_pre_kses_less_than), so a typed "2 < 4" is stored as "2 &lt; 4".
+ *    Those entities have to be decoded again for display.
+ *
+ *  - esc_html() escapes with double_encode OFF, so on the way OUT it passes any
+ *    entity straight through. Text someone literally typed as "&#xb6;" was
+ *    handed to the browser as a live entity and painted as ¶ — the reloaded
+ *    chat showed something the sender never wrote.
+ *
+ * So: decode what storage encoded, then escape the lot. htmlspecialchars_decode()
+ * is the exact inverse of the esc_html() applied on the way in — it reverses
+ * &amp; &lt; &gt; &quot; &#039; and touches nothing else, so "&#xb6;" survives
+ * as the literal text it was. Escaping with double_encode ON then guarantees
+ * the browser paints the characters rather than interpreting them.
+ *
+ * @param string $message Raw column value.
+ * @return string Escaped for output.
+ */
+function pcu_message_text( $message ) {
+	$message = htmlspecialchars_decode( (string) $message, ENT_QUOTES );
+
+	return htmlspecialchars( $message, ENT_QUOTES, 'UTF-8', true );
 }
 
 /**

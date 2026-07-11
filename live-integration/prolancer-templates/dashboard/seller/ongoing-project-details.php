@@ -149,7 +149,7 @@ if( is_user_logged_in() ){
               </a>
             </div>
             <div class="col-9">
-              <p><?php echo esc_html( $message->message ); ?></p>
+              <p><?php echo pcu_message_text( $message->message ); ?></p>
               <?php pcu_render_attachments( $message->attachment_id ); ?>
             </div>
           </div>
@@ -158,7 +158,7 @@ if( is_user_logged_in() ){
         <div class="chat-list message_sender">
           <div class="row">
             <div class="col-9">
-              <p><?php echo esc_html( $message->message ); ?></p>              
+              <p><?php echo pcu_message_text( $message->message ); ?></p>              
               <?php pcu_render_attachments( $message->attachment_id ); ?>
             </div>
             <div class="col-3">
