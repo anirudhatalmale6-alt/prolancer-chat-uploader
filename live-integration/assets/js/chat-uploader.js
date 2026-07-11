@@ -17,12 +17,12 @@
     var CFG = window.PCU_CONFIG || {};
 
     var settings = {
-        uploadUrl:     CFG.uploadUrl     || 'upload.php',
+        uploadUrl:     CFG.uploadUrl     || '/wp-admin/admin-ajax.php',
+        action:        CFG.action        || 'prolancer_ajax_upload_message_attachment',
         maxFilesize:   CFG.maxFilesize   || 10,          // MB, per file
         maxFiles:      CFG.maxFiles      || 10,
         parallel:      CFG.parallel      || 3,           // concurrent uploads
-        acceptedFiles: CFG.acceptedFiles || 'image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip',
-        params:        CFG.params        || {}           // action, nonce, …
+        acceptedFiles: CFG.acceptedFiles || 'image/*,.pdf,.doc,.docx,.ppt,.pptx'
     };
 
     var MB = 1024 * 1024;
@@ -247,6 +247,16 @@
         var queue = [];                  // the staged files
         var seq = 0;
 
+        // --- the plugin's existing composer ---------------------------------
+        // The chat form, its hidden id-carrier, and the plugin's original file
+        // input. That input stays in the DOM (CSS hides it) because it holds the
+        // post_id + nonce the upload endpoint needs; nothing listens to its
+        // change event any more, so the plugin's old uploader — and its
+        // "Successfully uploaded!" popup — never fires.
+        var form = document.querySelector('#send-service-message-form, #send-project-message-form');
+        var legacyInput = document.getElementById('upload-message-attachments');
+        var idField = form ? form.querySelector('.attachment-id') : null;
+
         var modalNode = root.querySelector('.pcu-modal');
         var dialog    = root.querySelector('.pcu-modal-dialog');
         var dropzone  = root.querySelector('.pcu-dropzone');
@@ -382,15 +392,25 @@
 
         // ------------------------------------------------------------- upload
 
-        /** Upload one file. Resolves either way — a failure marks the row. */
+        /**
+         * Upload one file through the PLUGIN's own endpoint
+         * (prolancer_ajax_upload_message_attachment).
+         *
+         * post_id and nonce are read straight off the plugin's file input, which
+         * is still rendered (CSS keeps it hidden) precisely so we don't have to
+         * duplicate them. Field name must be `attachment` — that is what the
+         * endpoint's media_handle_upload() call looks for.
+         *
+         * Resolves either way; a failure marks the row rather than throwing.
+         */
         function uploadOne(item) {
             return new Promise(function (resolve) {
                 var form = new FormData();
 
-                Object.keys(settings.params).forEach(function (k) {
-                    form.append(k, settings.params[k]);
-                });
-                form.append('file', item.file, item.file.name);
+                form.append('action', settings.action);
+                form.append('nonce', legacyInput ? legacyInput.getAttribute('data-nonce') : '');
+                form.append('post_id', legacyInput ? legacyInput.getAttribute('data-post-id') : '');
+                form.append('attachment', item.file, item.file.name);
 
                 var xhr = new XMLHttpRequest();
                 item.xhr = xhr;
@@ -407,12 +427,23 @@
                     var res = {};
                     try { res = JSON.parse(xhr.responseText); } catch (e) { /* noop */ }
 
-                    // WordPress replies {success:bool, data:{…}}; a plain endpoint
-                    // puts the fields at the top level. Accept either.
+                    // WordPress replies {success:bool, data:{…}}.
                     var payload = res.data || res;
 
                     if (xhr.status < 200 || xhr.status >= 300 || res.success === false) {
-                        fail(item, (payload && payload.error) || 'Upload failed.');
+                        fail(item, (payload && payload.message) || 'Upload failed.');
+                        resolve();
+                        return;
+                    }
+
+                    // The plugin endpoint does `if ($attachment_id)` — and a
+                    // WP_Error object is truthy, so a genuinely failed upload can
+                    // come back reported as success with a non-numeric id. Check
+                    // it really is an attachment id before trusting it.
+                    var id = parseInt(payload.id, 10);
+
+                    if (!id) {
+                        fail(item, 'Upload failed on the server.');
                         resolve();
                         return;
                     }
@@ -420,13 +451,11 @@
                     item.done = true;
                     item.row.classList.remove('is-uploading');
                     item.uploaded = {
-                        name:  item.file.name,
-                        type:  item.file.type,
-                        url:   payload.url   || null,
-                        thumb: payload.thumb || null,
-                        id:    payload.id    || null,
-                        // Already-decoded preview, so the chat thumbnail paints
-                        // immediately instead of popping in.
+                        id:   id,
+                        name: item.file.name,
+                        type: item.file.type,
+                        // Already-decoded preview, so the staged thumbnail paints
+                        // immediately instead of popping in and shifting the row.
                         preview: item.preview || null
                     };
                     resolve();
@@ -489,7 +518,10 @@
                 var done = queue.filter(function (it) { return it.done; });
                 if (!done.length) { return; }   // all failed — keep the modal up
 
-                // NO "Successfully uploaded!" dialog. Straight to the chat.
+                // NO "Successfully uploaded!" dialog. The files go straight to
+                // the composer, ready to send with the message.
+                done.forEach(function (it) { stage(it.uploaded); });
+
                 window.PCU.emit('pcu:uploaded', done.map(function (it) {
                     return it.uploaded;
                 }));
@@ -501,6 +533,102 @@
                 if (!queue.length) { modal.hide(); }
                 syncUi();
             });
+        });
+
+        // ------------------------------------------- staged attachments strip
+
+        // Files that have been uploaded but not yet SENT. They sit in the
+        // composer, and their ids ride along with the next message.
+        var staged = [];
+        var stagedEl = null;
+
+        /**
+         * Write the staged ids into the plugin's hidden field as a
+         * comma-separated list.
+         *
+         * This is the whole trick behind multiple attachments per message:
+         * `attachment_id` is varchar(300) and the plugin saves it with
+         * sanitize_text_field(), so "12,13,14" stores verbatim. A legacy row
+         * holding a single "12" still parses. No schema change.
+         */
+        function writeIds() {
+            if (!idField) { return; }
+
+            idField.value = staged.map(function (a) { return a.id; }).join(',');
+        }
+
+        function ensureStagedEl() {
+            if (stagedEl || !form) { return stagedEl; }
+
+            stagedEl = el('div', 'pcu-staged');
+            // Before the send button, so it reads as "these go with this message".
+            var sendBtn = form.querySelector('.send-service-message, .send-project-message');
+
+            if (sendBtn) {
+                form.insertBefore(stagedEl, sendBtn);
+            } else {
+                form.appendChild(stagedEl);
+            }
+            return stagedEl;
+        }
+
+        function renderStaged() {
+            var host = ensureStagedEl();
+            if (!host) { return; }
+
+            host.innerHTML = '';
+            host.classList.toggle('is-visible', staged.length > 0);
+
+            staged.forEach(function (a) {
+                var tile = el('div', 'pcu-staged-item');
+
+                if (a.preview) {
+                    var img = new Image();
+                    img.src = a.preview;
+                    img.alt = a.name;
+                    img.width = 56;
+                    img.height = 44;
+                    tile.appendChild(img);
+                } else {
+                    var ic = el('span', 'pcu-staged-file');
+                    ic.textContent = ext(a.name);
+                    tile.appendChild(ic);
+                }
+
+                var cap = el('span', 'pcu-staged-name');
+                cap.textContent = a.name;
+                tile.appendChild(cap);
+
+                var rm = el('button', 'pcu-staged-remove', ICON_X);
+                rm.type = 'button';
+                rm.setAttribute('aria-label', 'Remove ' + a.name);
+                rm.addEventListener('click', function () {
+                    staged = staged.filter(function (s) { return s.id !== a.id; });
+                    writeIds();
+                    renderStaged();
+                });
+                tile.appendChild(rm);
+
+                host.appendChild(tile);
+            });
+        }
+
+        function stage(attachment) {
+            staged.push(attachment);
+            writeIds();
+            renderStaged();
+        }
+
+        // Once the message is sent, its attachments belong to it — clear the
+        // strip so they don't ride along with the NEXT message as well.
+        //
+        // Two senders exist. The plugin's own handler does location.reload(), so
+        // the strip disappears by itself. The realtime handler appends in place
+        // and fires this event instead.
+        document.addEventListener('pcu:sent', function () {
+            staged = [];
+            if (idField) { idField.value = ''; }
+            renderStaged();
         });
 
         // ------------------------------------------------- drag, drop, browse
