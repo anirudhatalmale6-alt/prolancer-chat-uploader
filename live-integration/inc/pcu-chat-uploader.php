@@ -426,6 +426,199 @@ function pcu_message_text( $message ) {
 }
 
 /**
+ * Video posters
+ * ----------------------------------------------------------------------------
+ * A video in the chat used to show a grey "MP4" tile. It now shows a real frame
+ * from the video, grabbed with ffmpeg, which this host has (8.1.1).
+ *
+ * Server-side rather than in the browser: it works for videos that were already
+ * uploaded before this existed, it does not depend on the sender's browser being
+ * able to decode its own file, and it costs the user nothing.
+ *
+ * The frame is stored as an ordinary attachment and hung off the video as its
+ * featured image — which is exactly what WordPress's own media library uses a
+ * video poster for, so it shows up there too rather than being private to us.
+ *
+ * Generated ONCE. Every later request just reads the meta.
+ */
+
+/**
+ * Where ffmpeg is, or '' if we cannot run it.
+ *
+ * shell_exec is disabled on plenty of shared hosts, so this must degrade to the
+ * old file tile rather than fatal.
+ */
+function pcu_ffmpeg() {
+	static $bin = null;
+
+	if ( null !== $bin ) {
+		return $bin;
+	}
+
+	$bin      = '';
+	$disabled = array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) );
+
+	if ( ! function_exists( 'shell_exec' ) || in_array( 'shell_exec', $disabled, true ) ) {
+		return $bin;
+	}
+
+	$found = shell_exec( 'command -v ffmpeg 2>/dev/null' );
+
+	if ( $found ) {
+		$bin = trim( $found );
+	}
+
+	/**
+	 * Filter the ffmpeg binary (set an absolute path if it is not on PATH).
+	 *
+	 * @param string $bin Path to ffmpeg, or '' to disable posters.
+	 */
+	return (string) apply_filters( 'pcu_ffmpeg', $bin );
+}
+
+/**
+ * The poster for a video attachment, generating it on first use.
+ *
+ * Two sizes matter and they are NOT interchangeable: WordPress's 'thumbnail' is
+ * a 150x150 square CROP, which is right for the 84x64 tile in the chat and very
+ * wrong behind a full-screen video — a 9:16 phone clip would show a
+ * centre-cropped square stretched across the stage. The viewer asks for 'full'.
+ *
+ * @param int    $video_id Attachment ID of the video.
+ * @param string $size     Any registered image size.
+ * @return string Poster image URL, or '' if one could not be made.
+ */
+function pcu_video_poster_url( $video_id, $size = 'thumbnail' ) {
+	$poster_id = (int) get_post_thumbnail_id( $video_id );
+
+	if ( ! $poster_id ) {
+		// Don't re-run ffmpeg on every page view for a file it already choked on.
+		if ( get_post_meta( $video_id, '_pcu_poster_failed', true ) ) {
+			return '';
+		}
+
+		$poster_id = pcu_make_video_poster( $video_id );
+
+		if ( ! $poster_id ) {
+			update_post_meta( $video_id, '_pcu_poster_failed', 1 );
+
+			return '';
+		}
+	}
+
+	return (string) wp_get_attachment_image_url( $poster_id, $size );
+}
+
+/**
+ * Grab a frame and attach it to the video.
+ *
+ * @param int $video_id Attachment ID of the video.
+ * @return int Poster attachment ID, or 0.
+ */
+function pcu_make_video_poster( $video_id ) {
+	$ffmpeg = pcu_ffmpeg();
+	$source = get_attached_file( $video_id );
+
+	if ( ! $ffmpeg || ! $source || ! file_exists( $source ) ) {
+		return 0;
+	}
+
+	$uploads = wp_upload_dir();
+
+	if ( ! empty( $uploads['error'] ) ) {
+		return 0;
+	}
+
+	$name = pathinfo( $source, PATHINFO_FILENAME ) . '-poster.jpg';
+	$name = wp_unique_filename( $uploads['path'], $name );
+	$dest = trailingslashit( $uploads['path'] ) . $name;
+
+	// -ss BEFORE -i seeks by keyframe, which is near-instant even on a large
+	// file; after -i it would decode every frame up to that point.
+	//
+	// One second in, not zero: the first frame of a phone video is very often
+	// black or a blurred autofocus frame. If the clip is shorter than that the
+	// seek lands past the end and ffmpeg writes nothing — so fall back to 0.
+	//
+	// `-threads 1` sits AFTER -i, which is what makes it an ENCODER option.
+	// Without it this host fails every single time with
+	//
+	//     [mjpeg] ff_frame_thread_encoder_init failed
+	//     Conversion failed!
+	//
+	// because shared hosting caps how many threads a process may spawn and the
+	// JPEG encoder cannot start its frame-threading pool. One frame needs no
+	// pool. (Putting -threads BEFORE -i sets the DECODER's thread count and
+	// changes nothing — the encoder still fails.)
+	//
+	// `timeout` caps a pathological file rather than hanging the request.
+	foreach ( array( 1, 0 ) as $seek ) {
+		$cmd = sprintf(
+			'timeout 20 %s -y -ss %d -i %s -threads 1 -frames:v 1 -vf %s -q:v 4 %s 2>&1',
+			escapeshellcmd( $ffmpeg ),
+			$seek,
+			escapeshellarg( $source ),
+			escapeshellarg( 'scale=640:-2' ),   // keep the aspect; -2 keeps it even for jpeg
+			escapeshellarg( $dest )
+		);
+
+		shell_exec( $cmd );
+
+		if ( file_exists( $dest ) && filesize( $dest ) > 0 ) {
+			break;
+		}
+	}
+
+	if ( ! file_exists( $dest ) || ! filesize( $dest ) ) {
+		return 0;
+	}
+
+	$poster_id = wp_insert_attachment(
+		array(
+			'post_mime_type' => 'image/jpeg',
+			'post_title'     => get_the_title( $video_id ),
+			'post_status'    => 'inherit',
+			'post_parent'    => $video_id,
+		),
+		$dest
+	);
+
+	if ( is_wp_error( $poster_id ) || ! $poster_id ) {
+		wp_delete_file( $dest );
+
+		return 0;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	wp_update_attachment_metadata( $poster_id, wp_generate_attachment_metadata( $poster_id, $dest ) );
+
+	set_post_thumbnail( $video_id, $poster_id );
+
+	return (int) $poster_id;
+}
+
+/**
+ * Make the poster as soon as the video is uploaded, so the sender is already
+ * waiting on a request and nobody's page render pays for it later.
+ *
+ * Scoped to chat uploads: every other uploader on the site behaves as before.
+ */
+function pcu_poster_on_upload( $attachment_id ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the plugin's
+	// upload handler verifies its own nonce; this only narrows the scope.
+	$action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+
+	if ( 'prolancer_ajax_upload_message_attachment' !== $action ) {
+		return;
+	}
+
+	if ( 'video' === pcu_attachment_kind( $attachment_id ) ) {
+		pcu_video_poster_url( $attachment_id );
+	}
+}
+add_action( 'add_attachment', 'pcu_poster_on_upload' );
+
+/**
  * Parse the stored attachment_id into a list of IDs.
  *
  * Accepts both the new "12,13,14" and the legacy single "12".
@@ -488,23 +681,35 @@ function pcu_render_attachments( $stored ) {
 			continue;   // attachment was deleted from the media library
 		}
 
-		$name    = get_the_title( $id );
-		$is_img  = wp_attachment_is_image( $id );
-		$thumb   = $is_img ? wp_get_attachment_image_url( $id, 'thumbnail' ) : '';
-		$ext     = strtoupper( pathinfo( $url, PATHINFO_EXTENSION ) );
+		$name   = get_the_title( $id );
+		$kind   = pcu_attachment_kind( $id );
+		$ext    = strtoupper( pathinfo( $url, PATHINFO_EXTENSION ) );
+		// Full size behind the video in the viewer; the square crop on the tile.
+		$poster = 'video' === $kind ? pcu_video_poster_url( $id, 'full' ) : '';
 
-		// The viewer reads these: what to render the file AS, and the real
-		// filename to hand the browser's save dialogue (the post title has had
-		// its extension stripped).
+		// A video shows a frame from itself; an image shows itself; anything
+		// else has no preview and shows its type.
+		if ( 'image' === $kind ) {
+			$thumb = wp_get_attachment_image_url( $id, 'thumbnail' );
+		} elseif ( $poster ) {
+			$thumb = pcu_video_poster_url( $id, 'thumbnail' );   // already generated
+		} else {
+			$thumb = '';
+		}
+
+		// The viewer reads these: what to render the file AS, the real filename
+		// to hand the browser's save dialogue (the post title has had its
+		// extension stripped), and the frame to show before a video is played.
 		printf(
-			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" title="%s" data-kind="%s" data-file="%s">',
+			'<a class="pcu-chat-thumb" href="%s" target="_blank" rel="noopener" title="%s" data-kind="%s" data-file="%s"%s>',
 			esc_url( $url ),
 			esc_attr( $name ),
-			esc_attr( pcu_attachment_kind( $id ) ),
-			esc_attr( wp_basename( $url ) )
+			esc_attr( $kind ),
+			esc_attr( wp_basename( $url ) ),
+			$poster ? sprintf( ' data-poster="%s"', esc_url( $poster ) ) : ''
 		);
 
-		if ( $is_img && $thumb ) {
+		if ( $thumb ) {
 			// Explicit width/height so the row cannot shift as images decode.
 			printf(
 				'<img src="%s" alt="%s" width="84" height="64" loading="lazy">',
@@ -513,6 +718,13 @@ function pcu_render_attachments( $stored ) {
 			);
 		} else {
 			printf( '<span class="pcu-chat-file">%s</span>', esc_html( $ext ) );
+		}
+
+		// A frame from a video looks exactly like a photo without this.
+		if ( 'video' === $kind && $thumb ) {
+			echo '<span class="pcu-chat-play" aria-hidden="true">'
+				. '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+				. '</span>';
 		}
 
 		printf( '<span class="pcu-chat-caption">%s</span>', esc_html( $name ) );

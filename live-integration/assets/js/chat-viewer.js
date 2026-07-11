@@ -142,6 +142,10 @@
             node.controls = true;
             node.preload = 'metadata';
 
+            // The frame we already generated. Without it the viewer is a black
+            // box until the first frame decodes.
+            if (item.poster) { node.poster = item.poster; }
+
             // Browsers refuse to autoplay anything with sound until the user has
             // interacted with the page, and the refusal is a REJECTED PROMISE,
             // not an exception — ignore it and the video just sits there looking
@@ -222,10 +226,11 @@
 
     function read(a) {
         return {
-            url:  a.getAttribute('href'),
-            kind: a.getAttribute('data-kind') || 'file',
-            file: a.getAttribute('data-file') || '',
-            name: a.getAttribute('title') || ''
+            url:    a.getAttribute('href'),
+            kind:   a.getAttribute('data-kind') || 'file',
+            file:   a.getAttribute('data-file') || '',
+            name:   a.getAttribute('title') || '',
+            poster: a.getAttribute('data-poster') || ''
         };
     }
 

@@ -182,6 +182,18 @@ def main():
         viewer = page.locator('.pcu-viewer')
         check('viewer absent until opened', viewer.count() == 0)
 
+        # A video in the chat shows a frame from itself, not a grey "MP4" tile —
+        # with a play badge, or it is indistinguishable from a photo.
+        vid_thumb = page.locator('.pcu-chat-thumb[data-kind="video"]')
+        check('video thumbnail is a frame from the video',
+              vid_thumb.locator('img').count() == 1
+              and vid_thumb.locator('.pcu-chat-file').count() == 0)
+        check('video thumbnail carries a play badge',
+              vid_thumb.locator('.pcu-chat-play').count() == 1)
+        check('play badge does not swallow the click',
+              vid_thumb.locator('.pcu-chat-play').evaluate(
+                  'n => getComputedStyle(n).pointerEvents') == 'none')
+
         # Click the FIRST image in the chat.
         page.locator('.pcu-chat-thumb').first.click()
         expect(viewer).to_be_visible()
@@ -217,10 +229,14 @@ def main():
               'PDF' in page.locator('.pcu-viewer-file').inner_text(),
               page.locator('.pcu-viewer-file').inner_text())
 
-        # #4 is the video: it must actually play.
+        # #4 is the video: it must actually play, and it must carry the frame
+        # ffmpeg grabbed from it rather than opening as a black box.
         page.keyboard.press('ArrowRight')
         video = page.locator('.pcu-viewer-stage video')
         check('video element is rendered', video.count() == 1)
+        check('video opens on its poster frame, not black',
+              bool(video.get_attribute('poster')),
+              video.get_attribute('poster') or 'no poster')
         page.wait_for_timeout(700)
         playing = video.evaluate('v => !v.paused && v.currentTime > 0')
         check('video plays in the viewer', playing)

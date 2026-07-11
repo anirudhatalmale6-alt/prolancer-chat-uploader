@@ -522,6 +522,35 @@
     display: block;
 }
 
+/* A video's thumbnail is a frame from the video, so on its own it is
+   indistinguishable from a photo. The play badge is what says "this moves".
+   The anchor is the positioning context. */
+.pcu-chat-thumb {
+    position: relative;
+}
+
+.pcu-chat-play {
+    position: absolute;
+    top: 32px;                      /* centred on the 64px image, not the caption */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 55%);
+    color: #fff;
+    pointer-events: none;           /* the click belongs to the thumbnail */
+}
+
+.pcu-chat-play svg {
+    width: 14px;
+    height: 14px;
+    margin-left: 1px;               /* optical centring — a triangle is not a disc */
+}
+
 .pcu-chat-thumb img {
     width: 84px;
     height: 64px;

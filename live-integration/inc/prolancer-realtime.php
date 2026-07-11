@@ -192,12 +192,24 @@ function prolancer_realtime_attachments( $stored ) {
 		}
 
 		$is_image = wp_attachment_is_image( $id );
-		$thumb    = $is_image ? wp_get_attachment_image_url( $id, 'thumbnail' ) : '';
+		$kind     = function_exists( 'pcu_attachment_kind' ) ? pcu_attachment_kind( $id ) : 'file';
+		$is_video = ( 'video' === $kind && function_exists( 'pcu_video_poster_url' ) );
+
+		// Full size sits behind the video in the viewer; the square crop is the
+		// tile in the chat. Swapping them puts a 150x150 crop on a full screen.
+		$poster = $is_video ? pcu_video_poster_url( $id, 'full' ) : '';
+		$tile   = $is_video && $poster ? pcu_video_poster_url( $id, 'thumbnail' ) : '';
+
+		// A video shows the frame we grabbed from it, exactly as it does after a
+		// reload — so a clip that arrives live is not a bare "MP4" tile until the
+		// page is refreshed.
+		$thumb = $is_image ? wp_get_attachment_image_url( $id, 'thumbnail' ) : $tile;
 
 		if ( is_ssl() ) {
 			// Keep links on https so they don't trigger mixed-content blocking.
-			$url   = set_url_scheme( $url, 'https' );
-			$thumb = $thumb ? set_url_scheme( $thumb, 'https' ) : '';
+			$url    = set_url_scheme( $url, 'https' );
+			$thumb  = $thumb ? set_url_scheme( $thumb, 'https' ) : '';
+			$poster = $poster ? set_url_scheme( $poster, 'https' ) : '';
 		}
 
 		$out[] = array(
@@ -211,8 +223,9 @@ function prolancer_realtime_attachments( $stored ) {
 			// carries, or an attachment that arrives live would open blank.
 			// 'file' is also the only place the real extension survives —
 			// get_the_title() has already stripped it.
-			'kind'     => function_exists( 'pcu_attachment_kind' ) ? pcu_attachment_kind( $id ) : 'file',
+			'kind'     => $kind,
 			'file'     => wp_basename( $url ),
+			'poster'   => $poster,
 		);
 	}
 

@@ -55,13 +55,18 @@
 				// Read by the media viewer, exactly as on the server-rendered
 				// markup — so a file that arrives live opens the same way.
 				'data-kind': a.kind || (a.is_image ? 'image' : 'file'),
-				'data-file': a.file || ''
+				'data-file': a.file || '',
+				'data-poster': a.poster || ''
 			});
 
-			if (a.is_image && (a.thumb || a.url)) {
+			// An image shows itself; a video shows the frame the server grabbed
+			// from it. Anything else has no preview and shows its type.
+			var thumb = a.is_image ? (a.thumb || a.url) : a.poster;
+
+			if (thumb) {
 				// Explicit size so the chat cannot shift as the image decodes.
 				$('<img/>', {
-					src: a.thumb || a.url,
+					src: thumb,
 					alt: a.name,
 					width: 84,
 					height: 64
@@ -71,6 +76,13 @@
 				// stripped, so deriving it from a.name would print the title.
 				var ext = (a.file || '').split('.').pop() || 'file';
 				$('<span/>', { 'class': 'pcu-chat-file' }).text(ext.toUpperCase()).appendTo($a);
+			}
+
+			// A frame from a video looks exactly like a photo without this.
+			if (a.kind === 'video' && thumb) {
+				$('<span/>', { 'class': 'pcu-chat-play', 'aria-hidden': 'true' })
+					.html('<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>')
+					.appendTo($a);
 			}
 
 			$('<span/>', { 'class': 'pcu-chat-caption' }).text(a.name).appendTo($a);
