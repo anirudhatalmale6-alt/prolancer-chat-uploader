@@ -192,7 +192,7 @@ if( is_user_logged_in() ){
     <?php } ?>
     <form id="send-project-message-form">
       <textarea name="message" cols="30" rows="10" placeholder="<?php echo esc_attr__( 'Type your message here...','prolancer' ); ?>"></textarea>
-      <input id="upload-message-attachments" type="file" class="form-control mt-3 mb-4" multiple accept="image/pdf/doc/docx/ppt/pptx*" data-order-id="<?php echo esc_attr($proposal_id) ?>" data-nonce="<?php echo wp_create_nonce('upload_file_nonce'); ?>">
+      <input id="upload-message-attachments" type="file" class="form-control mt-3 mb-4" multiple accept="image/pdf/doc/docx/ppt/pptx*" data-order-id="<?php echo esc_attr($proposal_id) ?>" data-nonce="<?php echo wp_create_nonce('upload_file_nonce'); ?>" data-post-id="<?php echo esc_attr($project_id); ?>">
     <?php pcu_attach_button(); ?>
       <input type="hidden" name="attachment_id" class="attachment-id" value="">
       <a href="#" class="send-project-message prolancer-btn" data-nonce="<?php echo wp_create_nonce('send_project_message_nonce'); ?>" data-proposal-id="<?php echo esc_attr($proposal_id) ?>" data-sender-id="<?php echo esc_attr( get_user_meta( get_current_user_id(), 'seller_id' , true ) ); ?>" data-receiver-id="<?php echo esc_attr( $buyer_id ); ?>"><?php echo esc_html__( 'Send message','prolancer' ); ?></a>

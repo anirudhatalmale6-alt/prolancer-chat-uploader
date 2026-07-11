@@ -70,7 +70,17 @@ for rel in COMPOSER + RENDER_ONLY:
         def add_button(m):
             global n_input
             n_input += 1
-            return m.group(0) + '\n    <?php pcu_attach_button(); ?>'
+            tag = m.group(0)
+
+            # Plugin bug (theirs, not ours): this one template forgets
+            # data-post-id, so its uploads land unattached to the project.
+            # $project_id is already in scope here — just pass it.
+            if 'data-post-id' not in tag:
+                tag = tag[:-1].rstrip() + \
+                    ' data-post-id="<?php echo esc_attr($project_id); ?>">'
+
+            return tag + '\n    <?php pcu_attach_button(); ?>'
+
         code = FILE_INPUT.sub(add_button, code, count=1)
 
     # Guard rails: if a pattern stopped matching (e.g. plugin update changed the
@@ -89,11 +99,15 @@ for rel in COMPOSER + RENDER_ONLY:
         if 'pcu_attach_button' in line and line.strip() != '<?php pcu_attach_button(); ?>':
             fails.append('%s: button spliced INSIDE a tag -> %s' % (rel, line.strip()[:60]))
 
-    # And the input the JS reads post_id/nonce from must still be intact.
+    # The JS reads post_id and nonce off that input, so every composer template
+    # must carry both — including the one where the plugin omitted data-post-id.
     if rel in COMPOSER:
+        tag = FILE_INPUT.search(code)
+        tag = tag.group(0) if tag else ''
+
         for attr in ('data-post-id', 'data-nonce'):
-            if attr not in code and attr in orig:
-                fails.append('%s: %s lost from the file input' % (rel, attr))
+            if attr not in tag:
+                fails.append('%s: file input is missing %s' % (rel, attr))
 
     dst = os.path.join(OUT, rel)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
