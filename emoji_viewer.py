@@ -113,6 +113,61 @@ def main():
         recent = page.locator('.pcu-emoji-section').first.locator('.pcu-emoji').count()
         check('picked emoji lands in Frequently Used', recent >= 1, '%d' % recent)
 
+        # --- the three faults the client reported, pinned down ----------------
+        # 1+2. The parent theme styles EVERY <button> on the site:
+        #        button, input[type=button], … {
+        #            color:#fff; font-size:16px; border-radius:50px;
+        #            height:60px; padding:0 50px; border:none;
+        #        }
+        #      That forced the emoji cells to 60px (so the grid overflowed and
+        #      the glyphs came out huge) and bent the active tab's 2px underline
+        #      into an arc. Apply the real rule and hold the picker to its own
+        #      geometry.
+        page.add_style_tag(content="""
+            button, input[type="button"], input[type="reset"], input[type="submit"] {
+                cursor: pointer; color: #fff; font-size: 16px;
+                border-radius: 50px; height: 60px; padding: 0 50px; border: none;
+            }""")
+        page.wait_for_timeout(150)
+
+        cellbox = page.locator('.pcu-emoji').first.bounding_box()
+        check("theme's 60px button rule can't stretch the emoji cells",
+              cellbox['height'] < 50, '%.0fpx' % cellbox['height'])
+
+        radius = page.locator('.pcu-emoji-tab').first.evaluate(
+            'n => getComputedStyle(n).borderRadius')
+        check("theme's 50px radius can't curve the active tab underline",
+              radius == '0px', radius)
+
+        grid = page.locator('.pcu-emoji-grid').first
+        overflows = grid.evaluate(
+            'g => g.scrollWidth > g.closest(".pcu-emoji-body").clientWidth + 1')
+        check('emoji grid does not overflow sideways', not overflows)
+
+        # 3. WordPress rewrites emoji characters as <img class="emoji"> (Twemoji)
+        #    when the browser can't draw them — Windows can't draw flags, so it
+        #    fires for most Windows users. The button is then left with an image
+        #    and NO TEXT, so reading textContent inserts nothing. Do exactly what
+        #    wp-emoji-release.js does, and the pick must still work.
+        page.evaluate("""() => {
+          document.querySelectorAll('.pcu-emoji').forEach(b => {
+            b.innerHTML = '<img class="emoji" alt="' + b.textContent + '" src="data:image/svg+xml,' +
+                          '%3Csvg xmlns=%27http://www.w3.org/2000/svg%27/%3E">';
+          });
+        }""")
+        page.wait_for_timeout(100)
+
+        swapped = page.locator('.pcu-emoji').nth(3)
+        check('WordPress leaves the button with no text at all',
+              swapped.evaluate('n => n.textContent') == '')
+
+        page.fill('textarea[name="message"]', '')
+        want = swapped.get_attribute('data-emoji')
+        swapped.click()
+        check('emoji still inserts once WordPress has swapped it for an image',
+              page.input_value('textarea[name="message"]') == want,
+              repr(page.input_value('textarea[name="message"]')))
+
         # Closes on outside click; stays open otherwise.
         page.mouse.click(20, 400)
         check('closes on outside click', not pop.is_visible())

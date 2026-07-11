@@ -808,6 +808,35 @@
    read as a pair. The popup is anchored to the button and opens UPWARDS — the
    composer lives at the bottom of the chat, so downwards would run off-screen.
    -------------------------------------------------------------------------- */
+
+/* FIRST: undo the parent theme's blanket button rule.
+
+       button, input[type=button], input[type=reset], input[type=submit] {
+           cursor: pointer; color: #fff; font-size: 16px;
+           border-radius: 50px; height: 60px; padding: 0 50px; border: none;
+       }
+
+   A 60px-tall white pill with 50px of side padding. Right for a "Send message"
+   CTA; wrong for every small control we draw. It was forcing the emoji cells to
+   60px — so the grid overflowed and the glyphs came out huge — and bending the
+   active tab's 2px underline into an arc, because a 50px radius rounds it.
+
+   Reset it once for everything inside our own two components, so each rule
+   below only has to state what it actually wants. Scoped by a container class
+   (0,1,1) so it beats the theme's bare `button` (0,0,1); the component rules
+   that follow are scoped the same way, so they still beat this. */
+.pcu-emoji-pop button,
+.pcu-viewer button {
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    background: none;
+}
 .pcu-emoji-btn {
     display: inline-flex;
     align-items: center;
@@ -880,7 +909,7 @@
     padding: 0 4px;
 }
 
-.pcu-emoji-tab {
+.pcu-emoji-pop .pcu-emoji-tab {
     flex: 1 1 0;
     display: flex;
     align-items: center;
@@ -895,16 +924,16 @@
     transition: color .15s ease;
 }
 
-.pcu-emoji-tab svg {
+.pcu-emoji-pop .pcu-emoji-tab svg {
     width: 19px;
     height: 19px;
 }
 
-.pcu-emoji-tab:hover {
+.pcu-emoji-pop .pcu-emoji-tab:hover {
     color: var(--pcu-text);
 }
 
-.pcu-emoji-tab.is-active {
+.pcu-emoji-pop .pcu-emoji-tab.is-active {
     color: var(--pcu-primary);
     border-bottom-color: var(--pcu-primary);
 }
@@ -941,11 +970,12 @@
     grid-template-columns: repeat(8, 1fr);
 }
 
-.pcu-emoji {
+.pcu-emoji-pop .pcu-emoji {
     display: flex;
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
+    min-width: 0;                /* let the 1fr column size the cell, not the glyph */
     padding: 0;
     border: 0;
     border-radius: 6px;
@@ -959,9 +989,25 @@
     transition: background-color .1s ease;
 }
 
-.pcu-emoji:hover,
-.pcu-emoji:focus-visible {
+.pcu-emoji-pop .pcu-emoji:hover,
+.pcu-emoji-pop .pcu-emoji:focus-visible {
     background: var(--pcu-primary-soft);
+}
+
+/* WordPress rewrites emoji characters as <img class="emoji"> (Twemoji) whenever
+   the browser cannot draw them itself — Windows cannot draw flag emoji, so this
+   fires for most Windows users, and it fires on the picker's buttons too.
+
+   Size the image to the glyph it replaced. Without this the theme's image
+   sizing takes over and the emoji swell to fill the whole cell. WordPress's own
+   `img.emoji` rule is `!important`, so match it rather than fight it: 1em of
+   the button's 23px font is 23px, which is exactly the glyph size. */
+.pcu-emoji-pop .pcu-emoji img {
+    width: 1em;
+    height: 1em;
+    max-width: none;
+    margin: 0;
+    vertical-align: middle;
 }
 
 /* --------------------------------------------------------------------------
@@ -1009,8 +1055,8 @@
     gap: 4px;
 }
 
-.pcu-viewer-btn,
-.pcu-viewer-nav {
+.pcu-viewer .pcu-viewer-btn,
+.pcu-viewer .pcu-viewer .pcu-viewer-nav {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1023,19 +1069,19 @@
     transition: opacity .15s ease;
 }
 
-.pcu-viewer-btn {
+.pcu-viewer .pcu-viewer-btn {
     width: 38px;
     height: 38px;
     border-radius: 50%;
 }
 
-.pcu-viewer-btn svg {
+.pcu-viewer .pcu-viewer-btn svg {
     width: 20px;
     height: 20px;
 }
 
-.pcu-viewer-btn:hover,
-.pcu-viewer-nav:hover {
+.pcu-viewer .pcu-viewer-btn:hover,
+.pcu-viewer .pcu-viewer-nav:hover {
     opacity: 1;
     background: rgb(255 255 255 / 12%);
 }
@@ -1050,7 +1096,7 @@
     z-index: 2;
 }
 
-.pcu-viewer-nav svg {
+.pcu-viewer .pcu-viewer-nav svg {
     width: 26px;
     height: 26px;
 }

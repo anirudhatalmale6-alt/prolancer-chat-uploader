@@ -65,6 +65,31 @@
     }
 
     /**
+     * One emoji button.
+     *
+     * The character is written to BOTH the button's text and a data-emoji
+     * attribute, and every read goes through the attribute.
+     *
+     * WordPress ships wp-emoji-release.js, which rewrites emoji characters in
+     * the page as <img class="emoji"> (Twemoji) whenever the browser cannot
+     * draw them itself — Windows cannot draw flag emoji, so this fires for most
+     * Windows users, and it fires on our buttons too because it watches the DOM
+     * for new nodes. Once it has run the button holds an <img> and no text at
+     * all, so button.textContent is EMPTY and inserting it inserts nothing.
+     *
+     * The attribute survives that rewrite. Leave WordPress to it — swapping in
+     * an image is the only way flags render on Windows at all.
+     */
+    function cell(emoji) {
+        return '<button type="button" class="pcu-emoji" tabindex="-1" data-emoji="' +
+               emoji + '">' + emoji + '</button>';
+    }
+
+    function charOf(button) {
+        return button.getAttribute('data-emoji') || button.textContent;
+    }
+
+    /**
      * Split a group's character data into individual emoji.
      *
      * NOT a plain split(''): an emoji is routinely several code units — a
@@ -208,9 +233,7 @@
                 // One string of HTML rather than 1,900 appendChild calls: the
                 // browser parses it in one pass, which is the difference
                 // between a snappy first open and a visible stall.
-                grid.innerHTML = split(group.emoji).map(function (e) {
-                    return '<button type="button" class="pcu-emoji" tabindex="-1">' + e + '</button>';
-                }).join('');
+                grid.innerHTML = split(group.emoji).map(cell).join('');
 
                 section.appendChild(grid);
                 body.appendChild(section);
@@ -255,8 +278,11 @@
                 var hit = e.target.closest('.pcu-emoji');
                 if (!hit) { return; }
 
-                insertAtCaret(field, hit.textContent);
-                pushRecent(hit.textContent);
+                var emoji = charOf(hit);
+                if (!emoji) { return; }
+
+                insertAtCaret(field, emoji);
+                pushRecent(emoji);
                 renderRecent();
             });
 
@@ -268,9 +294,7 @@
 
             var list = readRecent();
             recentGrid.parentNode.classList.toggle('is-empty', list.length === 0);
-            recentGrid.innerHTML = list.map(function (e) {
-                return '<button type="button" class="pcu-emoji" tabindex="-1">' + e + '</button>';
-            }).join('');
+            recentGrid.innerHTML = list.map(cell).join('');
         }
 
         /**
