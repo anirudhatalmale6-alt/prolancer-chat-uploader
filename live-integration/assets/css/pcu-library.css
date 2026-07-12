@@ -1,0 +1,269 @@
+/**
+ * Extras & FAQ library — the two dashboard screens, and the tick-list they add
+ * to the Create Service form.
+ */
+
+/* --------------------------------------------------------------------------
+   The library table
+   -------------------------------------------------------------------------- */
+.pcu-lib-intro {
+    margin: 0 0 20px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.pcu-lib-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.pcu-lib-table th,
+.pcu-lib-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eceef3;
+    vertical-align: top;
+    text-align: left;
+}
+
+.pcu-lib-table thead th {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    border-bottom: 2px solid #eceef3;
+}
+
+/* The checkbox column: narrow, and the box centred in it. */
+.pcu-lib-check {
+    width: 48px;
+    text-align: center;
+}
+
+.pcu-lib-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 10px;
+    cursor: pointer;
+    accent-color: #6787fe;      /* the site's blue */
+}
+
+.pcu-lib-table thead .pcu-lib-check input[type="checkbox"] {
+    margin-top: 0;
+}
+
+.pcu-lib-price {
+    width: 200px;
+}
+
+.pcu-lib-actions {
+    width: 60px;
+    text-align: center;
+}
+
+.pcu-lib-table textarea {
+    min-height: 70px;
+    margin-top: 8px;
+}
+
+/* A ticked row is shaded, so what is selected is obvious at a glance. */
+.pcu-lib-table tbody tr:has(.pcu-lib-row-check:checked) {
+    background: #f4f6ff;
+}
+
+.pcu-lib-empty td {
+    color: #98a2b3;
+    font-style: italic;
+    text-align: center;
+    padding: 28px 12px;
+}
+
+.pcu-lib-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: #98a2b3;
+    cursor: pointer;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+.pcu-lib-delete:hover,
+.pcu-lib-delete:focus-visible {
+    color: #e5252a;
+    background: #fdeeee;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.pcu-lib-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+}
+
+.pcu-lib-right {
+    display: flex;
+    gap: 10px;
+}
+
+/* "Remove selected" is the quiet one; Save is the site's button. */
+.pcu-lib-remove {
+    background: #eef0f3;
+    color: #3a4252;
+}
+
+.pcu-lib-remove:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+.pcu-lib-status {
+    margin: 14px 0 0;
+    min-height: 20px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.pcu-lib-status.is-ok {
+    color: #12b76a;
+}
+
+.pcu-lib-status.is-error {
+    color: #e5252a;
+}
+
+/* --------------------------------------------------------------------------
+   The tick-list on Create Service
+   --------------------------------------------------------------------------
+   Sits above the section it feeds. Ticking a row adds it to the form below;
+   unticking removes the row it added. Typing a brand-new one straight into the
+   form still works exactly as before — this only adds a shortcut.
+   -------------------------------------------------------------------------- */
+.pcu-pick {
+    margin-bottom: 18px;
+    padding: 16px 18px;
+    border: 1px solid #e3e7ef;
+    border-radius: 12px;
+    background: #fbfcfe;
+}
+
+.pcu-pick-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.pcu-pick-head strong {
+    font-size: 14px;
+    color: #1d2433;
+}
+
+.pcu-pick-hint {
+    font-size: 13px;
+    color: #98a2b3;
+}
+
+.pcu-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;          /* a long library scrolls rather than pushing the form away */
+    overflow-y: auto;
+}
+
+.pcu-pick-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color .12s ease;
+}
+
+.pcu-pick-item:hover {
+    background: #f1f4ff;
+}
+
+.pcu-pick-item input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+    cursor: pointer;
+    accent-color: #6787fe;
+}
+
+.pcu-pick-text {
+    flex: 1;
+    font-size: 14px;
+    color: #3a4252;
+    overflow-wrap: anywhere;
+}
+
+.pcu-pick-price {
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6787fe;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive — the table has to survive a phone
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+    .pcu-lib-table,
+    .pcu-lib-table tbody,
+    .pcu-lib-table tr,
+    .pcu-lib-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .pcu-lib-table thead {
+        display: none;          /* the labels move into the rows */
+    }
+
+    .pcu-lib-table tr {
+        position: relative;
+        padding: 12px 12px 12px 44px;
+        border-bottom: 1px solid #eceef3;
+    }
+
+    .pcu-lib-table td {
+        border: 0;
+        padding: 6px 0;
+    }
+
+    .pcu-lib-check {
+        position: absolute;
+        top: 16px;
+        left: 8px;
+        width: auto;
+        padding: 0;
+    }
+
+    .pcu-lib-check input[type="checkbox"] {
+        margin-top: 0;
+    }
+
+    .pcu-lib-actions {
+        text-align: left;
+    }
+
+    .pcu-lib-foot {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pcu-lib-right {
+        flex-direction: column;
+    }
+}

@@ -23,3 +23,7 @@
 	// Create/edit service & project: stop an untouched dropdown from wiping the
 	// category/location/delivery-time it was meant to save. Added by Anirudha.
 	require_once get_stylesheet_directory() . '/inc/pcu-service-form.php';
+
+	// Extras & FAQ library: each seller's own reusable list, under the Services
+	// menu, and a tick-list for it on Create Service. Added by Anirudha.
+	require_once get_stylesheet_directory() . '/inc/pcu-library.php';

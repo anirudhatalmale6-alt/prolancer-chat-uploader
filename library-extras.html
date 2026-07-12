@@ -1,0 +1,109 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="assets/pcu-library.css">
+<style>body{font-family:system-ui;margin:0;background:#f7f8fb}
+.white-padding{background:#fff;padding:24px;margin:16px;border-radius:12px}
+.form-control{width:100%;padding:9px 12px;border:1px solid #dfe3ec;border-radius:8px;box-sizing:border-box}
+.input-group{display:flex}.input-group-text{padding:9px 12px;background:#f1f3f7;border:1px solid #dfe3ec;border-right:0;border-radius:8px 0 0 8px}
+.input-group .form-control{border-radius:0 8px 8px 0}
+.prolancer-btn{display:inline-block;padding:10px 22px;background:#6787FE;color:#fff;border:0;border-radius:40px;cursor:pointer;text-decoration:none}
+.fas,.fa{font-style:normal}.fa-trash::before{content:'\1F5D1'}
+</style></head><body>
+	<div class="white-padding mb-4">
+		<h2 class="mb-0">
+			Extras		</h2>
+	</div>
+
+	<div class="white-padding">
+		<p class="pcu-lib-intro">
+			Build your list of extras once. When you post a service you can tick the ones you want, instead of typing them again.		</p>
+
+		<div class="pcu-lib" data-library="extras">
+			<table class="pcu-lib-table">
+				<thead>
+					<tr>
+						<th class="pcu-lib-check">
+														<input type="checkbox" class="pcu-lib-all"
+								aria-label="Select all">
+						</th>
+						<th>Name of extra</th>
+													<th class="pcu-lib-price">Price</th>
+												<th class="pcu-lib-actions"><span class="screen-reader-text">Remove</span></th>
+					</tr>
+				</thead>
+				<tbody class="pcu-lib-rows">
+																		<tr data-id="r1">
+								<td class="pcu-lib-check">
+									<input type="checkbox" class="pcu-lib-row-check"
+										aria-label="Rush delivery">
+								</td>
+								<td>
+									<input type="text" class="form-control pcu-lib-title"
+										value="Rush delivery"
+										placeholder="Name of extra">
+																	</td>
+																	<td class="pcu-lib-price">
+										<div class="input-group">
+											<span class="input-group-text">$</span>
+											<input type="text" inputmode="decimal" data-num="1"
+												class="form-control mb-0 pcu-lib-price-input"
+												value="50"
+												placeholder="Price">
+										</div>
+									</td>
+																<td class="pcu-lib-actions">
+									<i class="fas fa-trash pcu-lib-delete" role="button" tabindex="0"
+										aria-label="Remove"></i>
+								</td>
+							</tr>
+													<tr data-id="r2">
+								<td class="pcu-lib-check">
+									<input type="checkbox" class="pcu-lib-row-check"
+										aria-label="Extra revision">
+								</td>
+								<td>
+									<input type="text" class="form-control pcu-lib-title"
+										value="Extra revision"
+										placeholder="Name of extra">
+																	</td>
+																	<td class="pcu-lib-price">
+										<div class="input-group">
+											<span class="input-group-text">$</span>
+											<input type="text" inputmode="decimal" data-num="1"
+												class="form-control mb-0 pcu-lib-price-input"
+												value="20"
+												placeholder="Price">
+										</div>
+									</td>
+																<td class="pcu-lib-actions">
+									<i class="fas fa-trash pcu-lib-delete" role="button" tabindex="0"
+										aria-label="Remove"></i>
+								</td>
+							</tr>
+															</tbody>
+			</table>
+
+			<div class="pcu-lib-foot">
+				<a href="#" class="pcu-lib-add prolancer-btn">
+					<i class="fal fa-plus"></i>
+					Add Extra				</a>
+
+				<div class="pcu-lib-right">
+					<button type="button" class="pcu-lib-remove prolancer-btn" disabled>
+						Remove selected					</button>
+					<button type="button" class="pcu-lib-save prolancer-btn">
+						Save					</button>
+				</div>
+			</div>
+
+			<p class="pcu-lib-status" role="status"></p>
+		</div>
+	</div>
+	<script>window.PCU_LIB = {ajaxUrl:'/lib-stub', nonce:'x', currency:'$',
+  extras: [{"id":"r1","title":"Rush delivery","price":"50"},{"id":"r2","title":"Extra revision","price":"20"}], faqs: [{"id":"f1","title":"Do you offer refunds?","description":"Yes, within 14 days."}]};
+window.fetch = function(u,o){ window.__saved = o.body.toString();
+  var rows = JSON.parse(new URLSearchParams(o.body).get('rows'));
+  return Promise.resolve({json:function(){return Promise.resolve({success:true,data:{message:'Saved.',rows:rows}});}}); };
+</script>
+<script src="assets/pcu-service-form.js"></script>
+<script src="assets/pcu-library.js"></script>
+</body></html>
