@@ -56,6 +56,18 @@ PROFILE = {
     'buyer/profile.php':  ('$buyer_id',  'buyer_profile_attachment'),
 }
 
+# Forms whose dropdowns open with a placeholder <option> that has NO value.
+# An option with no value submits its own TEXT, so an untouched dropdown posts
+# the literal word "Category" / "Delivery Time". The plugin casts that to (int)
+# — which is 0 — and calls wp_set_post_terms(..., false), a REPLACE. The real
+# term is destroyed. Give the placeholders value="" so they send nothing.
+# (inc/pcu-service-form.php is the second half: it refuses to act on a taxonomy
+# value that is not a term id, whatever gets sent.)
+SELECT_FORMS = [
+    'seller/create-service.php',
+    'buyer/create-project.php',
+]
+
 # The plugin's single-attachment download block, in all its whitespace variants.
 ATTACH_BLOCK = re.compile(
     r'<\?php\s+if\s*\(\s*\$message->attachment_id\s*\)\s*\{\s*\?>.*?<\?php\s*\}\s*\?>',
@@ -171,6 +183,35 @@ for rel in COMPOSER + RENDER_ONLY + TEXT_ONLY:
     open(dst, 'w', encoding='utf-8').write(code)
 
     print('%-42s attachments:%d  composer:%d  messages:%d' % (rel, n_attach, n_input, n_echo))
+
+# --- forms: give every valueless placeholder <option> a value="" ---
+
+# `<option><?php echo esc_html__('Category','prolancer'); ?></option>` — no value.
+PLACEHOLDER_OPTION = re.compile(
+    r'<option>(\s*<\?php\s+echo\s+esc_html__\(.*?\?>\s*)</option>',
+    re.DOTALL,
+)
+
+for rel in SELECT_FORMS:
+    src = os.path.join(SRC, rel)
+    if not os.path.exists(src):
+        fails.append('%s: MISSING' % rel)
+        continue
+
+    code = open(src, encoding='utf-8').read()
+
+    code, n = PLACEHOLDER_OPTION.subn(r'<option value="">\1</option>', code)
+
+    if n == 0:
+        fails.append('%s: no valueless placeholder <option> found' % rel)
+    if re.search(r'<option>\s*<\?php\s+echo\s+esc_html__', code):
+        fails.append('%s: a valueless placeholder survived' % rel)
+
+    dst = os.path.join(OUT, rel)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    open(dst, 'w', encoding='utf-8').write(code)
+
+    print('%-42s placeholders fixed:%d' % (rel, n))
 
 # --- profile pages: swap the profile-picture dropzone for the round control ---
 

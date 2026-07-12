@@ -19,3 +19,7 @@
 	// Profile pictures: teach get_avatar() where ProLancer keeps them, so a
 	// buyer's photo shows instead of the grey default. Added by Anirudha.
 	require_once get_stylesheet_directory() . '/inc/pcu-profile.php';
+
+	// Create/edit service & project: stop an untouched dropdown from wiping the
+	// category/location/delivery-time it was meant to save. Added by Anirudha.
+	require_once get_stylesheet_directory() . '/inc/pcu-service-form.php';
