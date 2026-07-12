@@ -629,6 +629,81 @@ function pcu_message_text( $message ) {
 }
 
 /**
+ * Keep the line breaks a person typed.
+ *
+ * Shift+Enter puts a newline in the box, but the message arrived as one run-on
+ * block. The break was not lost in the browser and it was not lost by the HTML —
+ * it never reached the database. The plugin stores the message with
+ * sanitize_text_field(), and that function's whole job includes collapsing
+ * [\r\n\t ]+ into a single space. The newline was gone before anything could
+ * render it.
+ *
+ * So it has to be fixed on the way IN. WordPress gives sanitize_text_field() a
+ * filter of the same name, so rather than editing the plugin or reimplementing
+ * its handler (notifications, Pusher and all), the line breaks are put back on
+ * the sanitised value:
+ *
+ *   - sanitise each LINE exactly as WordPress would (so every other protection
+ *     that function gives us is untouched), then join the lines back with "\n";
+ *   - a run of blank lines collapses to one, so nobody can post a screenful of
+ *     nothing;
+ *   - ONLY while a chat message is being sent, and only for a value that
+ *     actually had a newline in it. Every other sanitize_text_field() call on
+ *     the site, including the sender/receiver ids in this very request, behaves
+ *     exactly as before.
+ *
+ * @param string $filtered What sanitize_text_field() made of it.
+ * @param string $str      What it was given.
+ * @return string
+ */
+function pcu_keep_newlines( $filtered, $str ) {
+	$str = (string) $str;
+
+	if ( ! pcu_is_chat_send() || false === strpos( $str, "\n" ) ) {
+		return $filtered;
+	}
+
+	// Sanitise line by line. The filter has to come off first or each of these
+	// calls would land straight back in here.
+	remove_filter( 'sanitize_text_field', 'pcu_keep_newlines', 10 );
+
+	$lines = preg_split( '/\r\n|\r|\n/', $str );
+	$lines = array_map( 'sanitize_text_field', $lines );
+
+	add_filter( 'sanitize_text_field', 'pcu_keep_newlines', 10, 2 );
+
+	$out = implode( "\n", $lines );
+
+	// One blank line between paragraphs is a paragraph break; ten is a nuisance.
+	$out = preg_replace( "/\n{3,}/", "\n\n", $out );
+
+	return trim( $out, "\n" );
+}
+add_filter( 'sanitize_text_field', 'pcu_keep_newlines', 10, 2 );
+
+/**
+ * Is a chat message being sent right now?
+ *
+ * Scopes the newline filter above to the three send handlers, so it cannot
+ * change how anything else on the site is sanitised.
+ */
+function pcu_is_chat_send() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the plugin's
+	// handlers verify their own nonce; this only narrows the scope.
+	$action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+
+	return in_array(
+		$action,
+		array(
+			'prolancer_ajax_messages',
+			'prolancer_ajax_send_service_message',
+			'prolancer_ajax_send_project_message',
+		),
+		true
+	);
+}
+
+/**
  * Video posters
  * ----------------------------------------------------------------------------
  * A video in the chat used to show a grey "MP4" tile. It now shows a real frame

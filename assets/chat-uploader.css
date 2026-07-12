@@ -1292,6 +1292,16 @@
     max-width: 100%;
 }
 
+/* Line breaks the sender typed must survive to the page.
+   HTML collapses any run of whitespace — including newlines — into one space, so
+   even once the break reaches the database (pcu_keep_newlines) it would still
+   render as a run-on paragraph without this. `pre-wrap`, not `pre`: keep the
+   newlines, but still wrap long lines instead of forcing a horizontal scroll. */
+.chat-list p {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;        /* a 200-character "word" can't burst the bubble */
+}
+
 /* …and the same again for the box you type in. The inbox puts your own avatar
    next to the composer too; it is the same photo, telling you the same thing you
    already know. The message box takes the width back. */

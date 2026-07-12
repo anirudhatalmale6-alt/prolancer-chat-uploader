@@ -200,8 +200,28 @@
         var wrap = document.createElement('span');
         wrap.className = 'pcu-avatar';
 
+        // MOVE THE IMAGE'S MARGIN ONTO THE WRAPPER.
+        //
+        // The dot is positioned as a percentage of the wrapper, on the assumption
+        // that the wrapper IS the photo. But a shrink-to-fit box takes the width
+        // of its child's MARGIN box — and the theme puts a right margin on the
+        // contact-list avatar to space it from the name. So the wrapper came out
+        // wider than the photo, the percentages were measured against that extra
+        // width, and the dot floated off to the right of the avatar entirely.
+        //
+        // Hand the margin to the wrapper and zero it on the image: the spacing
+        // the theme wanted is unchanged, and the wrapper is now exactly the photo.
+        var cs = window.getComputedStyle(img);
+
+        wrap.style.marginTop = cs.marginTop;
+        wrap.style.marginRight = cs.marginRight;
+        wrap.style.marginBottom = cs.marginBottom;
+        wrap.style.marginLeft = cs.marginLeft;
+
         img.parentNode.insertBefore(wrap, img);
         wrap.appendChild(img);
+
+        img.style.margin = '0';
 
         var dot = document.createElement('span');
         dot.className = 'pcu-dot';
