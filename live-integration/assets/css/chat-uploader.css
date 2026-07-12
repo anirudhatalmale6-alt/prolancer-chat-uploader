@@ -1390,30 +1390,39 @@
     position: relative;
     display: inline-block;
     line-height: 0;                 /* no phantom descender gap under the img */
+
+    /* One knob per avatar size; the dot's position is derived from these, so a
+       new size only needs these two values changed. */
+    --pcu-dot-size: 13px;
+    --pcu-dot-border: 2px;
 }
 
 .pcu-dot {
     position: absolute;
 
-    /* The avatar is a CIRCLE — the plugin rounds every chat image — so pinning
-       the dot to the bottom-right of its SQUARE box left it half on the photo
-       and half off it, floating in the corner the circle doesn't reach.
+    /* SIT THE DOT ON THE RIM — its centre exactly on the circle's edge, at the
+       bottom-right diagonal. That is the position the client drew.
 
-       The corner is the furthest point from the circle. Inset the dot along the
-       diagonal until it fits: for a 50px avatar and a 17px dot (13px + 2px
-       border either side), 10% is the first inset where the whole dot lands
-       inside the circle — it reaches 24.8px from the centre, against a 25px
-       radius. A percentage, not pixels, so it still holds if the avatar is ever
-       resized. */
-    right: 10%;
-    bottom: 10%;
+       The avatar is a circle of radius R inside a square of side 2R. The point
+       on the rim at 45° is R·cos45° = 0.7071R from the centre on each axis, so
+       measured in from the square's right/bottom edge that point is:
 
-    width: 13px;
-    height: 13px;
+           (2R − R − 0.7071R) / 2R  =  (1 − 0.7071) / 2  =  14.6447%
+
+       …of the avatar's width, whatever R is. Then pull back by half the dot so
+       the dot's CENTRE lands there rather than its corner. Verified at 30/50/60px:
+       the dot's centre sits exactly R from the avatar's centre every time. */
+    --pcu-dot-total: calc(var(--pcu-dot-size) + 2 * var(--pcu-dot-border));
+
+    right: calc(14.6447% - var(--pcu-dot-total) / 2);
+    bottom: calc(14.6447% - var(--pcu-dot-total) / 2);
+
+    width: var(--pcu-dot-size);
+    height: var(--pcu-dot-size);
     border-radius: 50%;
-    border: 2px solid #fff;         /* separates it from a busy avatar */
+    border: var(--pcu-dot-border) solid #fff;   /* separates it from a busy avatar */
     background: #adb5bd;            /* offline until we hear otherwise */
-    box-sizing: content-box;        /* the border must not eat the 13px */
+    box-sizing: content-box;        /* the border must not eat the dot */
     transition: background-color .2s ease;
 }
 
@@ -1422,10 +1431,9 @@
 }
 
 /* The inbox contact list uses a 30px avatar, half the size of the ones in a
-   conversation. The SAME dot at 13px would swallow it, so it scales down to
-   match — same colours, same border, same shape, just sized to its avatar. */
-.message-box-sidebar .pcu-avatar .pcu-dot {
-    width: 8px;
-    height: 8px;
-    border-width: 1.5px;
+   conversation. The SAME dot would swallow it, so it scales down to match — same
+   colours, same border, same shape, and the rim maths above still places it. */
+.message-box-sidebar .pcu-avatar {
+    --pcu-dot-size: 8px;
+    --pcu-dot-border: 1.5px;
 }

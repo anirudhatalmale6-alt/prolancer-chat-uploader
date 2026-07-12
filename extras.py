@@ -188,16 +188,27 @@ def main():
         # The avatar is a CIRCLE, so the dot must be inset along the diagonal —
         # pinned to the square box's corner it sat half on the photo, half off.
         # Measure to the dot's RIM, not its square bounding-box corner.
+        # The client drew where he wants it: the dot's CENTRE sitting ON the
+        # avatar's rim, at the bottom-right diagonal — straddling the edge, half
+        # on the photo and half off. So measure the dot's centre against the
+        # radius, not its outer edge.
         geo = page.evaluate("""() => {
           const w = document.querySelector('.pcu-avatar'), d = document.querySelector('.pcu-dot');
-          const wb = w.getBoundingClientRect(), db = d.getBoundingClientRect();
-          const cx = wb.x + wb.width/2, cy = wb.y + wb.height/2;
+          const img = w.querySelector('img');
+          const ib = img.getBoundingClientRect(), db = d.getBoundingClientRect();
+          const cx = ib.x + ib.width/2, cy = ib.y + ib.height/2;
           const dx = db.x + db.width/2, dy = db.y + db.height/2;
-          return { r: wb.width/2, reach: Math.hypot(dx-cx, dy-cy) + db.width/2 };
+          return {
+            r: ib.width/2,
+            dist: Math.hypot(dx-cx, dy-cy),
+            angle: Math.atan2(dy-cy, dx-cx) * 180 / Math.PI
+          };
         }""")
-        check('dot sits fully inside the circular avatar',
-              geo['reach'] <= geo['r'],
-              'rim reaches %.1fpx, radius %.1fpx' % (geo['reach'], geo['r']))
+        check('dot centre sits ON the avatar rim',
+              abs(geo['dist'] - geo['r']) < 1.0,
+              'centre %.2fpx from middle, radius %.1fpx' % (geo['dist'], geo['r']))
+        check('…at the bottom-right diagonal (45 deg)',
+              abs(geo['angle'] - 45) < 2, '%.1f deg' % geo['angle'])
 
         check('green when the other user is online',
               dots.first.evaluate('n => n.classList.contains("is-online")'))
