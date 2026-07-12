@@ -1363,8 +1363,11 @@ function pcu_render_modal() {
 						);
 						?>
 					</span>
-					<button type="button" class="pcu-btn-close"><?php esc_html_e( 'Close', 'prolancer' ); ?></button>
-					<button type="button" class="pcu-btn-upload" disabled>
+					<?php // prolancer-btn is the SITE's button — same class the rest of the
+					// dashboard uses, and the one the cropper modal uses. Shape and size
+					// come from there, so restyling the site's buttons restyles these too. ?>
+					<button type="button" class="pcu-btn-close prolancer-btn"><?php esc_html_e( 'Close', 'prolancer' ); ?></button>
+					<button type="button" class="pcu-btn-upload prolancer-btn" disabled>
 						<span class="pcu-btn-label"><?php esc_html_e( 'Upload', 'prolancer' ); ?></span>
 					</button>
 				</div>

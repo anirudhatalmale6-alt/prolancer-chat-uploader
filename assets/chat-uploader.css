@@ -452,19 +452,26 @@
 
 /* --------------------------------------------------------------------------
    6. Footer buttons — Upload stays dimmed until files are attached
+   --------------------------------------------------------------------------
+   These carry the site's own `.prolancer-btn` (see the markup), which is where
+   the shape and size come from — the pill, the radius, the padding. It is the
+   class every other button on the dashboard uses, and the one the cropper modal
+   uses, so the two modals now match and a future restyle of the site's buttons
+   carries these along with it.
+
+   All that is left here is colour and state: which of the pair is the loud one,
+   and what "you cannot press this yet" looks like.
    -------------------------------------------------------------------------- */
+/* NO background here, on purpose. The site paints `.prolancer-btn` with its own
+   brand colour (from the theme's generated CSS), and the cropper's Upload takes
+   it from there. Hard-coding a purple would be a second opinion about the brand
+   colour that could drift from it — and would have to be found and changed again
+   the day the site is restyled. Take the site's. */
 .pcu-btn-upload {
-    background: var(--pcu-primary);
-    border: 1px solid var(--pcu-primary);
     color: #fff;
-    border-radius: 6px;
-    padding: 8px 22px;
-    font-size: 14px;
-    font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
     transition: opacity .15s ease;
 }
 
@@ -473,18 +480,16 @@
     cursor: not-allowed;
 }
 
+/* The quiet one. Same shape as Upload, no shout — matching the cropper's Close. */
 .pcu-btn-close {
-    background: #fff;
-    border: 1px solid var(--pcu-border);
-    color: var(--pcu-text);
-    border-radius: 6px;
-    padding: 8px 18px;
-    font-size: 14px;
-    cursor: pointer;
+    background: #eef0f3;
+    border: 1px solid #eef0f3;
+    color: #3a4252;
 }
 
 .pcu-btn-close:hover {
-    background: #f7f8fb;
+    background: #e3e7ee;
+    color: #3a4252;
 }
 
 .pcu-footer-hint {

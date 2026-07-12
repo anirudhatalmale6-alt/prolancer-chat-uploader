@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  The two modal footers side by side, against the REAL theme CSS (parent-style +
+  dashboard), so the comparison is what the client actually sees — not my demo's
+  stand-in styles. Both must now read as the same button.
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="theme/parent-style.css">
+  <link rel="stylesheet" href="theme/dashboard.css">
+  <link rel="stylesheet" href="assets/chat-uploader.css">
+  <link rel="stylesheet" href="assets/pcu-avatar.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #6b7280; margin: 0; padding: 30px; }
+    .pair { display: flex; gap: 24px; align-items: flex-start; }
+    .card { background: #fff; border-radius: 12px; overflow: hidden; flex: 1; }
+    .cap { color: #fff; font-weight: 700; margin: 0 0 10px; font-size: 14px; }
+    .body-stub { height: 90px; background: #f5f7fb; }
+  </style>
+  <style>/* the live site paints prolancer-btn with its brand colour, inline */
+  .prolancer-btn{background:#6787FE;}
+  .pcu-btn-close.prolancer-btn,.pcu-crop-close.prolancer-btn{background:#eef0f3;}</style>
+</head>
+<body>
+  <div class="pair">
+    <div>
+      <p class="cap">Attach files modal</p>
+      <div class="card">
+        <div class="body-stub"></div>
+        <!-- the real footer markup from pcu_attach_button() -->
+        <div class="pcu-modal-footer">
+          <span class="pcu-footer-hint">Max 10 files &middot; 50 MB each</span>
+          <button type="button" class="pcu-btn-close prolancer-btn">Close</button>
+          <button type="button" class="pcu-btn-upload prolancer-btn">
+            <span class="pcu-btn-label">Upload</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="cap">Cropper modal (the site standard)</p>
+      <div class="card">
+        <div class="body-stub"></div>
+        <!-- the real footer markup from pcu_avatar_modal() -->
+        <div class="pcu-crop-foot">
+          <button type="button" class="pcu-crop-close prolancer-btn">Close</button>
+          <button type="button" class="pcu-crop-save prolancer-btn">Upload</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
