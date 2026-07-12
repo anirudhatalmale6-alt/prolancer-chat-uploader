@@ -65,7 +65,7 @@ if( is_user_logged_in() ){
           $project = get_post($project_id); ?>
           <tr>
             <td>
-              <a href="<?php echo esc_url(get_the_permalink($buyer_id)) ?>" target="_blank">
+              
                 <?php $buyer_image = wp_get_attachment_image ( prolancer_get_image_id(get_post_meta($buyer_id, 'buyer_profile_attachment', true )),array('50', '50') ,false);
 
                 if (!empty($buyer_image)) {
@@ -79,7 +79,7 @@ if( is_user_logged_in() ){
                 } else {
                     echo get_avatar( get_post_field('post_author', $buyer_id), 50 );
                 } ?>
-              </a>
+              
             </td>
             <td>
               <a href="<?php echo get_the_permalink($project_id); ?>" target="_blank"><?php echo esc_html( $project->post_title ); ?></a>
@@ -131,7 +131,7 @@ if( is_user_logged_in() ){
         <div class="chat-list message_receiver">
           <div class="row">
             <div class="col-3">
-              <a href="<?php echo esc_url(get_the_permalink($sender_id)) ?>" target="_blank">
+              
                 <?php $sender_image = wp_get_attachment_image ( prolancer_get_image_id(get_post_meta($sender_id, 'buyer_profile_attachment', true )),array('50', '50') ,false);
 
                 if (!empty($sender_image)) {
@@ -146,7 +146,7 @@ if( is_user_logged_in() ){
                     echo get_avatar( get_post_field('post_author', $sender_id), 50 );
                 } ?>
                 <?php echo esc_attr(get_post_meta($sender_id, 'buyer_profile_name', true)) ; ?>
-              </a>
+              
             </div>
             <div class="col-9">
               <p><?php echo pcu_message_text( $message->message ); ?></p>
@@ -162,7 +162,7 @@ if( is_user_logged_in() ){
               <?php pcu_render_attachments( $message->attachment_id ); ?>
             </div>
             <div class="col-3">
-              <a href="<?php echo esc_url(get_the_permalink($sender_id)) ?>" target="_blank">
+              
                 <?php echo esc_attr(get_post_meta($sender_id, 'seller_profile_name', true)) ; ?>
                 <?php $sender_image = wp_get_attachment_image ( prolancer_get_image_id(get_post_meta($sender_id, 'seller_profile_attachment', true )),array('50', '50') ,false);
 
@@ -177,7 +177,7 @@ if( is_user_logged_in() ){
                 } else {
                     echo get_avatar( get_post_field('post_author', $sender_id), 50 );
                 } ?>
-              </a>
+              
             </div>
           </div>
         </div>

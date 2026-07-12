@@ -15,3 +15,7 @@
 	// can carry JavaScript — this strips it. See the file for the full why.
 	// Added by Anirudha.
 	require_once get_stylesheet_directory() . '/inc/pcu-svg-guard.php';
+
+	// Profile pictures: teach get_avatar() where ProLancer keeps them, so a
+	// buyer's photo shows instead of the grey default. Added by Anirudha.
+	require_once get_stylesheet_directory() . '/inc/pcu-profile.php';

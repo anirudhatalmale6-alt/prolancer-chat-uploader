@@ -1,0 +1,151 @@
+<!doctype html>
+<!--
+  A faithful copy of the plugin's Messages page markup (message.php) AFTER my
+  template edits: avatars with no profile-page link, own messages carry
+  .message_sender. Used to verify the dot / tooltip / Enter-to-send / own-avatar
+  hidden, since I cannot log into the live dashboard.
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../build/assets/css/chat-uploader.css">
+  <style>
+    /* Just enough of the theme to reproduce the layout. */
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f7f8fb; }
+    .white-padding { background: #fff; padding: 20px; margin: 16px; border-radius: 10px; }
+    .row { display: flex; flex-wrap: wrap; }
+    .col-md-4 { flex: 0 0 33.333%; max-width: 33.333%; }
+    .col-md-8 { flex: 0 0 66.667%; max-width: 66.667%; }
+    .col-2 { flex: 0 0 16.6%; max-width: 16.6%; }
+    .col-3 { flex: 0 0 25%; max-width: 25%; }
+    .col-9 { flex: 0 0 75%; max-width: 75%; }
+    .col-10 { flex: 0 0 83%; max-width: 83%; }
+    .chat-list img, .nav-link img { border-radius: 50%; width: 60px; height: 60px; object-fit: cover; }
+    .nav-link img { width: 30px; height: 30px; }
+    .nav-link { display: block; padding: 10px 14px; border-radius: 10px; text-decoration: none; color: #4a5568; }
+    .nav-link.active { background: #eef1ff; color: #5b6bf5; }
+    .chat-list { padding: 10px 0; }
+    .chat-list .col-9 p { background: #eef0f3; padding: 12px 16px; border-radius: 10px; margin: 0; }
+    .message_sender .col-9 p { background: #5b6bf5; color: #fff; }
+    .text-end { text-align: right; }
+    textarea { width: 100%; min-height: 70px; border: 1px solid #dfe3ec; border-radius: 10px; padding: 12px; box-sizing: border-box; }
+    .prolancer-btn { display: inline-block; margin-top: 12px; padding: 10px 22px; background: #5b6bf5; color: #fff; border-radius: 40px; text-decoration: none; }
+    .d-flex { display: flex; } .align-items-center { align-items: center; }
+    .d-flex > span:last-child { margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <div class="white-padding"><h2 style="margin:0">Message</h2></div>
+
+  <div class="white-padding">
+    <div class="row message-box">
+      <div class="col-md-4">
+        <div class="message-box-sidebar">
+          <div class="nav nav-tabs">
+            <a href="#" class="nav-link active" data-bs-toggle="pill" data-bs-target="#chat-0-tab" role="tab">
+              <span class="d-flex align-items-center">
+                <img src="fixtures/mockup-homepage.png" alt="">
+                <span>SecretA</span>
+              </span>
+            </a>
+            <a href="#" class="nav-link" data-bs-toggle="pill" data-bs-target="#chat-1-tab" role="tab">
+              <span class="d-flex align-items-center">
+                <img src="fixtures/wireframe.png" alt="">
+                <span>Slack BBC</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <div class="tab-content">
+          <!-- conversation 0 -->
+          <div class="tab-pane fade show active" id="chat-0-tab">
+            <div class="chat-box">
+              <!-- received: avatar, NO link -->
+              <div class="chat-list">
+                <div class="row">
+                  <div class="col-3"><img src="fixtures/mockup-homepage.png" alt=""></div>
+                  <div class="col-9"><p>Hello there</p></div>
+                </div>
+              </div>
+              <!-- sent by me: own avatar column present in source, hidden by CSS -->
+              <div class="chat-list message_sender">
+                <div class="row">
+                  <div class="col-9"><p>Hi, how are you?</p></div>
+                  <div class="col-3 text-end"><img src="fixtures/wireframe.png" alt=""></div>
+                </div>
+              </div>
+              <div class="chat-list">
+                <div class="row">
+                  <div class="col-3"><img src="fixtures/mockup-homepage.png" alt=""></div>
+                  <div class="col-9"><p>BBC</p></div>
+                </div>
+              </div>
+            </div>
+            <form id="reply-message-form">
+              <div class="row">
+                <div class="col-2 text-center">
+                  <img src="fixtures/wireframe.png" alt="">
+                </div>
+                <div class="col-10">
+                  <textarea name="message" placeholder="Type your message here..."></textarea>
+                  <a href="#" class="send-message prolancer-btn" data-sender-id="1" data-receiver-id="42">Send message</a>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- conversation 1 (hidden tab) -->
+          <div class="tab-pane fade" id="chat-1-tab">
+            <div class="chat-box">
+              <div class="chat-list">
+                <div class="row">
+                  <div class="col-3"><img src="fixtures/wireframe.png" alt=""></div>
+                  <div class="col-9"><p>Maputo here</p></div>
+                </div>
+              </div>
+            </div>
+            <form id="reply-message-form">
+              <div class="row">
+                <div class="col-2 text-center"><img src="fixtures/wireframe.png" alt=""></div>
+                <div class="col-10">
+                  <textarea name="message" placeholder="Type your message here..."></textarea>
+                  <a href="#" class="send-message prolancer-btn" data-sender-id="1" data-receiver-id="77">Send message</a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Stand in for wp_localize_script + the presence endpoint.
+    window.PCU_CHAT = { ajaxUrl: '/presence-stub', nonce: 'x', everyMs: 999999 };
+    // 42 is online, 77 is offline.
+    window.fetch = function (url, opts) {
+      var body = opts && opts.body ? opts.body.toString() : '';
+      var ids = (body.match(/profile_ids=([^&]*)/) || [])[1] || '';
+      ids = decodeURIComponent(ids).split(',').filter(Boolean);
+      var online = {}; ids.forEach(function (id) { online[id] = (id === '42'); });
+      return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: { online: online } }); } });
+    };
+    // The send button just appends a bubble, like the real handler.
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.send-message'); if (!b) return;
+      e.preventDefault();
+      var form = b.closest('form'); var ta = form.querySelector('textarea');
+      if (!ta.value.trim()) return;
+      var box = b.closest('.tab-pane').querySelector('.chat-box');
+      var d = document.createElement('div'); d.className = 'chat-list message_sender';
+      d.innerHTML = '<div class="row"><div class="col-9"><p>' + ta.value.replace(/</g,'&lt;') + '</p></div><div class="col-3 text-end"><img src="fixtures/wireframe.png"></div></div>';
+      box.appendChild(d); ta.value = '';
+      document.dispatchEvent(new CustomEvent('pcu:appended'));
+    });
+  </script>
+  <script src="../build/assets/js/chat-extras.js"></script>
+</body>
+</html>

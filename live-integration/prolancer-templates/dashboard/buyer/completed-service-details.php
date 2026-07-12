@@ -54,9 +54,9 @@ if (is_user_logged_in() && $order_id) {
         ?>
         <tr>
           <td>
-            <a href="<?php echo esc_url(get_the_permalink($service_id)); ?>" target="_blank">
+            
               <?php echo esc_html($service->post_title); ?>
-            </a>
+            
           </td>
           <td><?php echo $delivery_term ? esc_html($delivery_term->name) : ''; ?></td>
           <td>
@@ -65,7 +65,7 @@ if (is_user_logged_in() && $order_id) {
             } ?>
           </td>
           <td>
-            <a href="<?php echo esc_url(get_the_permalink($seller_id)); ?>" target="_blank">
+            
               <?php if (!empty($seller_image)) {
                   echo wp_kses($seller_image, [
                       "img" => [
@@ -80,7 +80,7 @@ if (is_user_logged_in() && $order_id) {
               } else {
                   echo get_avatar($seller_author_id, 50);
               } ?>
-            </a>
+            
           </td>
         </tr>
       </tbody>
@@ -122,7 +122,7 @@ if (is_user_logged_in() && $order_id) {
               <?php pcu_render_attachments( $message->attachment_id ); ?>
             </div>
             <div class="col-3 text-end">
-              <a href="<?php echo esc_url(get_the_permalink($sender_id)); ?>" class="d-block" target="_blank">
+              
                 <?php echo esc_html($profile_name); ?>
                 <?php if (!empty($sender_image)) {
                     echo wp_kses($sender_image, [
@@ -138,11 +138,11 @@ if (is_user_logged_in() && $order_id) {
                 } else {
                     echo get_avatar($sender_author_id, 50);
                 } ?>
-              </a>
+              
             </div>
           <?php } else { ?>
             <div class="col-3">
-              <a href="<?php echo esc_url(get_the_permalink($sender_id)); ?>" target="_blank">
+              
                 <?php if (!empty($sender_image)) {
                     echo wp_kses($sender_image, [
                         "img" => [
@@ -158,7 +158,7 @@ if (is_user_logged_in() && $order_id) {
                     echo get_avatar($sender_author_id, 50);
                 } ?>
                 <?php echo esc_html($profile_name); ?>
-              </a>
+              
             </div>
             <div class="col-9">
               <p><?php echo pcu_message_text( $message->message ); ?></p>

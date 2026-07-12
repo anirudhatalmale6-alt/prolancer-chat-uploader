@@ -283,7 +283,9 @@ function pcu_max_files() {
 }
 
 /**
- * Dashboard screens that show a chat with attachments.
+ * Dashboard screens that show a chat WITH attachments.
+ *
+ * These get the whole kit: uploader, emoji picker, media viewer.
  */
 function pcu_chat_screens() {
 	return array(
@@ -295,36 +297,86 @@ function pcu_chat_screens() {
 }
 
 /**
+ * Screens that show a conversation but take no attachments.
+ *
+ * The dashboard's own Messages inbox. Its threads are text only, so it wants the
+ * behaviour that belongs to any conversation — Enter to send, the tooltip, the
+ * other person's online dot, your own avatar hidden on your own messages — but
+ * NOT the uploader, the emoji picker or the media viewer. Loading those here
+ * would be three scripts and an emoji fetch on a page with nothing to attach to.
+ */
+function pcu_message_screens() {
+	return array( 'message' );
+}
+
+/**
  * Is the current request one of those screens?
  *
  * The dashboard selects its screen with ?fed=… (see the plugin's
  * prolancer-dashboard.php).
  */
-function pcu_is_chat_screen() {
+function pcu_current_screen() {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only check.
-	$fed = isset( $_GET['fed'] ) ? sanitize_key( wp_unslash( $_GET['fed'] ) ) : '';
+	return isset( $_GET['fed'] ) ? sanitize_key( wp_unslash( $_GET['fed'] ) ) : '';
+}
 
-	return in_array( $fed, pcu_chat_screens(), true );
+function pcu_is_chat_screen() {
+	return in_array( pcu_current_screen(), pcu_chat_screens(), true );
+}
+
+function pcu_is_message_screen() {
+	return in_array( pcu_current_screen(), pcu_message_screens(), true );
 }
 
 /**
- * Assets — chat screens only, so no other page pays for them.
+ * Assets — conversation screens only, so no other page pays for them.
  */
 function pcu_enqueue_assets() {
-	if ( ! pcu_is_chat_screen() ) {
+	if ( ! pcu_is_chat_screen() && ! pcu_is_message_screen() ) {
 		return;
 	}
 
 	$dir = get_stylesheet_directory();
 	$uri = get_stylesheet_directory_uri();
 
-	// One stylesheet, one script. No Dropzone, no Bootstrap, no jQuery.
+	// ONE stylesheet, on every screen that shows a conversation. Not split in two:
+	// a second file would be a second request, and the client's rule is that one
+	// style must not arrive after another.
 	wp_enqueue_style(
 		'pcu-chat-uploader',
 		$uri . '/assets/css/chat-uploader.css',
 		array(),
 		pcu_asset_version( $dir . '/assets/css/chat-uploader.css' )
 	);
+
+	// Enter-to-send, tooltips, and the other user's online dot. Wanted by every
+	// conversation, so it is enqueued before the attachment-only scripts and does
+	// not depend on them.
+	wp_enqueue_script(
+		'pcu-chat-extras',
+		$uri . '/assets/js/chat-extras.js',
+		array(),
+		pcu_asset_version( $dir . '/assets/js/chat-extras.js' ),
+		true
+	);
+
+	wp_localize_script(
+		'pcu-chat-extras',
+		'PCU_CHAT',
+		array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'nonce'   => wp_create_nonce( 'pcu_presence' ),
+			// How often to say "still here", and how long a user stays "online"
+			// after their last word. The window is comfortably more than the
+			// interval, so one dropped request does not blink someone offline.
+			'everyMs' => 45000,
+		)
+	);
+
+	// Everything below is for attachments. The inbox has none.
+	if ( ! pcu_is_chat_screen() ) {
+		return;
+	}
 
 	wp_enqueue_script(
 		'pcu-chat-uploader',
@@ -383,28 +435,6 @@ function pcu_enqueue_assets() {
 	);
 
 	wp_localize_script( 'pcu-chat-viewer', 'PCU_VIEWER', array( 'spinner' => pcu_spinner_url() ) );
-
-	// Enter-to-send, tooltips, and the other user's online dot.
-	wp_enqueue_script(
-		'pcu-chat-extras',
-		$uri . '/assets/js/chat-extras.js',
-		array(),
-		pcu_asset_version( $dir . '/assets/js/chat-extras.js' ),
-		true
-	);
-
-	wp_localize_script(
-		'pcu-chat-extras',
-		'PCU_CHAT',
-		array(
-			'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'pcu_presence' ),
-			// How often to say "still here", and how long a user stays "online"
-			// after their last word. The window is comfortably more than the
-			// interval, so one dropped request does not blink someone offline.
-			'everyMs'  => 45000,
-		)
-	);
 }
 add_action( 'wp_enqueue_scripts', 'pcu_enqueue_assets' );
 
@@ -886,16 +916,61 @@ function pcu_ajax_presence() {
 	// The ping itself is what keeps the sender online.
 	update_user_meta( get_current_user_id(), '_pcu_last_seen', time() );
 
-	$profile_id = isset( $_POST['profile_id'] ) ? absint( $_POST['profile_id'] ) : 0;
-	$author     = $profile_id ? (int) get_post_field( 'post_author', $profile_id ) : 0;
+	// One request for the whole page. The inbox lists every conversation you have
+	// on one screen, so asking per-thread would fire five requests where one does.
+	$raw = isset( $_POST['profile_ids'] ) ? sanitize_text_field( wp_unslash( $_POST['profile_ids'] ) ) : '';
+
+	// Back-compat with the single-id form.
+	if ( '' === $raw && isset( $_POST['profile_id'] ) ) {
+		$raw = sanitize_text_field( wp_unslash( $_POST['profile_id'] ) );
+	}
+
+	$ids    = array_filter( array_map( 'absint', explode( ',', $raw ) ) );
+	$ids    = array_slice( array_unique( $ids ), 0, 50 );
+	$online = array();
+
+	foreach ( $ids as $id ) {
+		$user = pcu_presence_user_id( $id );
+
+		$online[ $id ] = $user ? pcu_user_is_online( $user ) : false;
+	}
 
 	wp_send_json_success(
 		array(
-			'online' => $author ? pcu_user_is_online( $author ) : false,
+			'online' => $online,
+			// The single-id callers read this one.
+			'single' => count( $ids ) === 1 ? reset( $online ) : null,
 		)
 	);
 }
 add_action( 'wp_ajax_pcu_presence', 'pcu_ajax_presence' );
+
+/**
+ * Turn whatever the page handed us into a user ID.
+ *
+ * The two conversation screens do not agree on what `data-receiver-id` means:
+ * the order chat puts the seller/buyer POST id there, while the dashboard inbox
+ * puts the USER id. Rather than make the JS care, resolve both here — if the id
+ * is a profile post, take its author; otherwise take it as a user id.
+ *
+ * @param int $id A post ID or a user ID.
+ * @return int User ID, or 0.
+ */
+function pcu_presence_user_id( $id ) {
+	$id = (int) $id;
+
+	if ( ! $id ) {
+		return 0;
+	}
+
+	$post = get_post( $id );
+
+	if ( $post && in_array( $post->post_type, array_keys( pcu_profile_sources() ), true ) ) {
+		return (int) $post->post_author;
+	}
+
+	return get_userdata( $id ) ? $id : 0;
+}
 
 /**
  * Icon for a non-media file type.

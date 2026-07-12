@@ -112,7 +112,7 @@
                       <div class="row">
                         <?php if ($is_receiver) : ?>
                           <div class="col-3">
-                            <a href="<?php echo esc_url(get_author_posts_url($message->sender_id)); ?>" target="_blank">
+                            
                               <?php if (!empty($sender_image)) : 
                                 echo wp_kses($sender_image, [
                                   'img' => [
@@ -127,7 +127,7 @@
                               else : 
                                 echo get_avatar($message->sender_id, 60);
                               endif; ?>
-                            </a>
+                            
                           </div>
                           <div class="col-9">
                             <p><?php echo pcu_message_text( $message->message ); ?></p>
@@ -137,7 +137,7 @@
                             <p><?php echo pcu_message_text( $message->message ); ?></p>
                           </div>
                           <div class="col-3 text-end">
-                            <a href="<?php echo esc_url(get_author_posts_url($message->sender_id)); ?>" target="_blank">
+                            
                               <?php if (!empty($sender_image)) : 
                                 echo wp_kses($sender_image, [
                                   'img' => [
@@ -152,7 +152,7 @@
                               else : 
                                 echo get_avatar($message->sender_id, 60);
                               endif; ?>
-                            </a>
+                            
                           </div>
                         <?php endif; ?>
                       </div>
@@ -162,7 +162,7 @@
                 <form id="reply-message-form">
                   <div class="row">
                     <div class="col-2 text-center">
-                      <a href="<?php echo esc_url(get_author_posts_url(get_current_user_id())); ?>" target="_blank">
+                      
                         <?php
                         $current_user_posts = get_posts([
                           'post_type' => 'sellers',
@@ -187,7 +187,7 @@
                         else : 
                           echo get_avatar(get_current_user_id(), 60);
                         endif; ?>
-                      </a>
+                      
                     </div>
                     <div class="col-10">
                       <textarea name="message" placeholder="<?php echo esc_attr__('Type your message here...', 'prolancer'); ?>"></textarea>

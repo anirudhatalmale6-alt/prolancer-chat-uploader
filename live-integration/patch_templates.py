@@ -15,6 +15,11 @@ a plugin update can be re-patched by re-running this rather than hand-merging:
   3. esc_html() becomes pcu_message_text(). esc_html() leaves existing HTML
      entities alone, so a message typed as "&#xb6;" rendered as a pilcrow after
      a reload — the stored chat disagreed with the live one.
+
+  4. The avatars are wrapped in links to the author's public profile page. The
+     client wants the avatar without the link, so the <a> is unwrapped to its
+     contents. The nav tabs, the download link and the send button are left
+     alone — only the author/permalink profile links go.
 """
 import os
 import re
@@ -63,6 +68,18 @@ MESSAGE_ECHO = re.compile(
     r'esc_html\(\s*\$message->message\s*\)'
 )
 
+# An avatar wrapped in a link to its owner's public profile page. Two forms:
+# the inbox uses get_author_posts_url(), the order chat uses get_the_permalink().
+# The anchor holds an <img> and/or a name and NO nested anchor, so `.*?</a>`
+# stops at its own close tag. Replaced by its own contents — avatar, no link.
+PROFILE_LINK = re.compile(
+    r'<a\s+href="<\?php\s+echo\s+esc_url\(\s*'
+    r'(?:get_author_posts_url|get_the_permalink)\('
+    r'.*?\?>"'                    # up to the end of the PHP echo — args may nest parens
+    r'[^>]*\btarget="_blank"[^>]*>(.*?)</a>',
+    re.DOTALL,
+)
+
 fails = []
 
 for rel in COMPOSER + RENDER_ONLY + TEXT_ONLY:
@@ -82,6 +99,9 @@ for rel in COMPOSER + RENDER_ONLY + TEXT_ONLY:
 
     # --- edit 3: show a message exactly as it was typed ---
     code, n_echo = MESSAGE_ECHO.subn('pcu_message_text( $message->message )', code)
+
+    # --- edit 4: avatar without the profile-page link ---
+    code, n_plink = PROFILE_LINK.subn(lambda m: m.group(1), code)
 
     # --- edit 2: attach icon + modal after the file input ---
     n_input = 0
@@ -110,6 +130,12 @@ for rel in COMPOSER + RENDER_ONLY + TEXT_ONLY:
         fails.append('%s: file input NOT FOUND' % rel)
     if n_echo == 0:
         fails.append('%s: message echo NOT FOUND' % rel)
+    if n_plink == 0:
+        fails.append('%s: profile link NOT FOUND' % rel)
+    if 'get_author_posts_url' in code or 'get_the_permalink($sender_id)' in code.replace(' ', ''):
+        # A profile link survived edit 4 — the pattern missed one.
+        if re.search(r'<a[^>]*(?:get_author_posts_url|get_the_permalink)', code):
+            fails.append('%s: a profile link survived' % rel)
     if 'esc_html($message->message)' in code.replace(' ', ''):
         fails.append('%s: a raw esc_html() message echo survived' % rel)
     if code == orig:

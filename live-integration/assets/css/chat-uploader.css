@@ -1404,3 +1404,12 @@
 .pcu-avatar.is-online .pcu-dot {
     background: #12b76a;
 }
+
+/* The inbox contact list uses a 30px avatar, half the size of the ones in a
+   conversation. The SAME dot at 13px would swallow it, so it scales down to
+   match — same colours, same border, same shape, just sized to its avatar. */
+.message-box-sidebar .pcu-avatar .pcu-dot {
+    width: 8px;
+    height: 8px;
+    border-width: 1.5px;
+}
