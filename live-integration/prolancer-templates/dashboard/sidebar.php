@@ -70,12 +70,14 @@ $visit_as = get_user_meta( get_current_user_id(), 'visit_as' , true );
 					<?php if($visit_as == 'seller'){ ?>
 						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=services"><?php echo esc_html__( 'Services', 'prolancer' ); ?></a></li>
 						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=create-service"><?php echo esc_html__( 'Create a service', 'prolancer' ); ?></a></li>
-						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=extras"><?php echo esc_html__( 'Extras', 'prolancer' ); ?></a></li>
-						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=faqs"><?php echo esc_html__( 'FAQ', 'prolancer' ); ?></a></li>
 					<?php } ?>
 					<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=ongoing-services"><?php echo esc_html__( 'Ongoing Services', 'prolancer' ); ?></a></li>
 					<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=cancelled-services"><?php echo esc_html__( 'Cancelled Services', 'prolancer' ); ?></a></li>
 					<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=completed-services"><?php echo esc_html__( 'Completed Services', 'prolancer' ); ?></a></li>
+					<?php if($visit_as == 'seller'){ ?>
+						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=extras"><?php echo esc_html__( 'Extras', 'prolancer' ); ?></a></li>
+						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=faqs"><?php echo esc_html__( 'FAQ', 'prolancer' ); ?></a></li>
+					<?php } ?>
 				</ul>
 			</li>
 			<li>

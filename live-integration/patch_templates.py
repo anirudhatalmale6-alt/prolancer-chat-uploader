@@ -236,11 +236,16 @@ print('%-42s doorway added' % '404.php')
 
 # --- sidebar: Extras and FAQ under the Services menu ---
 
-SIDEBAR_ANCHOR = """<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=create-service"><?php echo esc_html__( 'Create a service', 'prolancer' ); ?></a></li>"""
+# Anchor on "Completed Services" — the LAST item in the Services submenu — so
+# Extras and FAQ come after it. The client wants them at the bottom of the menu,
+# not sitting between "Create a service" and the service lists.
+SIDEBAR_ANCHOR = """<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=completed-services"><?php echo esc_html__( 'Completed Services', 'prolancer' ); ?></a></li>"""
 
 SIDEBAR_ADD = SIDEBAR_ANCHOR + """
+					<?php if($visit_as == 'seller'){ ?>
 						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=extras"><?php echo esc_html__( 'Extras', 'prolancer' ); ?></a></li>
-						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=faqs"><?php echo esc_html__( 'FAQ', 'prolancer' ); ?></a></li>"""
+						<li><a href="<?php if(function_exists('prolancer_get_page_url_by_template')){ echo esc_url(prolancer_get_page_url_by_template('prolancer-dashboard.php'));} if(get_option('permalink_structure')){echo"?";}else{echo"&";} ?>fed=faqs"><?php echo esc_html__( 'FAQ', 'prolancer' ); ?></a></li>
+					<?php } ?>"""
 
 src = os.path.join(SRC, 'sidebar.php')
 code = open(src, encoding='utf-8').read()
