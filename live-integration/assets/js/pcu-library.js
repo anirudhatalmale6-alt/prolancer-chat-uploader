@@ -199,6 +199,10 @@
                 var tr = e.target.closest('tr');
                 if (tr) { tr.parentNode.removeChild(tr); }
                 syncRemoveButton();
+
+                // Removed means removed — write it now. Waiting for Save is what
+                // let a deleted FAQ turn up on Create a Service.
+                persist('Removed.', false);
                 return;
             }
 
@@ -225,6 +229,8 @@
             });
             if (allBox) { allBox.checked = false; allBox.indeterminate = false; }
             syncRemoveButton();
+
+            persist('Removed.', false);   // same as the bin: removed is removed
         });
 
         function collect() {
@@ -247,9 +253,28 @@
             }).filter(function (r) { return r.title.trim() !== ''; });
         }
 
-        lib.querySelector('.pcu-lib-save').addEventListener('click', function () {
-            var btn = this;
-            btn.disabled = true;
+        var saveBtn = lib.querySelector('.pcu-lib-save');
+
+        /**
+         * Write the table to the server.
+         *
+         * DELETING PERSISTS IMMEDIATELY, and that is the point of this being a
+         * function rather than a click handler.
+         *
+         * The client removed an FAQ, went to Create a Service, and it was still
+         * there. His library on the server still held it: the bin had only taken
+         * the row off the screen, and the change was waiting on a Save he had no
+         * reason to expect. A list you manage is not a form you draft — removing
+         * something from it should remove it, full stop.
+         *
+         * So a removal writes straight away. Save is still there for edits and
+         * for new rows, and does the same thing.
+         *
+         * @param {string} done  What to say when it worked.
+         * @param {boolean} toViewAfter  Flip the rows back to text (a real save).
+         */
+        function persist(done, toViewAfter) {
+            saveBtn.disabled = true;
             status.textContent = 'Saving…';
             status.className = 'pcu-lib-status';
 
@@ -259,20 +284,20 @@
             body.set('which', which);
             body.set('rows', JSON.stringify(collect()));
 
-            window.fetch(CFG.ajaxUrl, {
+            return window.fetch(CFG.ajaxUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 body: body
             })
                 .then(function (r) { return r.json(); })
                 .then(function (res) {
-                    btn.disabled = false;
+                    saveBtn.disabled = false;
 
                     if (!res || !res.success) {
                         throw new Error('save failed');
                     }
 
-                    status.textContent = res.data.message;
+                    status.textContent = done || res.data.message;
                     status.className = 'pcu-lib-status is-ok';
 
                     // Rows the server accepted now carry their stored ids, so a
@@ -282,17 +307,19 @@
                     rows().forEach(function (tr, i) {
                         if (stored[i]) { tr.setAttribute('data-id', stored[i].id); }
 
-                        // Saved: it is a record now, not a form. This is what the
-                        // client asked for — after saving, nothing should still
-                        // look like a field waiting to be filled in.
-                        toView(tr);
+                        // Saved: it is a record now, not a form.
+                        if (toViewAfter) { toView(tr); }
                     });
                 })
                 .catch(function () {
-                    btn.disabled = false;
+                    saveBtn.disabled = false;
                     status.textContent = 'Sorry — that could not be saved. Please try again.';
                     status.className = 'pcu-lib-status is-error';
                 });
+        }
+
+        saveBtn.addEventListener('click', function () {
+            persist(null, true);
         });
 
         syncRemoveButton();
@@ -304,6 +331,19 @@
      * Drop a tick-list of the seller's library above each of the two sections,
      * so they can pull rows in rather than retyping them. Typing a brand-new one
      * still works exactly as it did — this only adds.
+     *
+     * TICKING DOES NOT OPEN ANYTHING.
+     *
+     * It used to append a full editable block — title, description and price
+     * boxes — for every item ticked. That was wrong twice over: the seller has
+     * already written those words in their library, so the form was asking them
+     * to look at them again; and ticking four extras buried the rest of the page
+     * under four big blocks.
+     *
+     * The tick IS the inclusion. What it adds is HIDDEN inputs carrying exactly
+     * what the plugin's save expects (additional_service_title[] and friends), so
+     * the service saves the same as if they had been typed — with nothing to look
+     * at. Unticking takes them away again.
      */
     function picker(container, list, isExtras, addRow) {
         if (!container || !list || !list.length) { return; }
@@ -357,6 +397,42 @@
         container.parentNode.insertBefore(box, container);
     }
 
+    /**
+     * One hidden field. .value, never innerHTML — the text is the seller's own.
+     */
+    function hidden(name, value) {
+        var i = document.createElement('input');
+        i.type = 'hidden';
+        i.name = name;
+        i.value = value || '';
+        return i;
+    }
+
+    /**
+     * The hidden inputs for one ticked library item.
+     *
+     * They go in their own <div>, appended to the SAME container the typed-in
+     * blocks live in. The plugin's save reads these as parallel arrays
+     * (title[i], description[i], price[i]), and the browser serialises them in
+     * DOM order — so as long as every block contributes exactly one of each
+     * name, which it does, the three arrays stay lined up whether the block was
+     * typed by hand or ticked from the library.
+     */
+    function hiddenGroup(row, isExtras) {
+        var box = el('div', 'pcu-pick-hidden');
+
+        if (isExtras) {
+            box.appendChild(hidden('additional_service_title[]', row.title));
+            box.appendChild(hidden('additional_service_description[]', row.description));
+            box.appendChild(hidden('additional_service_price[]', row.price));
+        } else {
+            box.appendChild(hidden('faq_title[]', row.title));
+            box.appendChild(hidden('faq_description[]', row.description));
+        }
+
+        return box;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var extrasWrap = document.querySelector('.additional-services');
         var faqWrap = document.querySelector('.faqs');
@@ -364,43 +440,15 @@
         if (!extrasWrap && !faqWrap) { return; }   // not the service form
 
         picker(extrasWrap, CFG.extras, true, function (row, label) {
-            var tr = el('div', 'row mb-4');
-            tr.innerHTML =
-                '<div class="col-sm-1"><i class="fa fa-bars"></i></div>' +
-                '<div class="col-sm-10 my-auto">' +
-                '<input type="text" name="additional_service_title[]" class="form-control">' +
-                '<textarea name="additional_service_description[]" class="form-control"></textarea>' +
-                '<div class="input-group mb-3"><span class="input-group-text"></span>' +
-                '<input type="text" inputmode="decimal" data-num="1" name="additional_service_price[]" class="form-control mb-0">' +
-                '</div></div>' +
-                '<div class="col-sm-1"><i class="fas fa-trash"></i></div>';
-
-            // textContent/value, never innerHTML — the title is the seller's own
-            // text and must never be able to become markup.
-            tr.querySelector('input[name="additional_service_title[]"]').value = row.title;
-            tr.querySelector('textarea').value = row.description || '';
-            tr.querySelector('.input-group-text').textContent = CFG.currency || '$';
-            tr.querySelector('input[name="additional_service_price[]"]').value = row.price || '';
-
-            extrasWrap.appendChild(tr);
-            label.pcuRow = tr;
+            var box = hiddenGroup(row, true);
+            extrasWrap.appendChild(box);
+            label.pcuRow = box;
         });
 
         picker(faqWrap, CFG.faqs, false, function (row, label) {
-            var tr = el('div', 'row mb-4');
-            tr.innerHTML =
-                '<div class="col-sm-1"><i class="fa fa-bars"></i></div>' +
-                '<div class="col-sm-10 my-auto">' +
-                '<input type="text" name="faq_title[]" class="form-control">' +
-                '<textarea name="faq_description[]" class="form-control"></textarea>' +
-                '</div>' +
-                '<div class="col-sm-1"><i class="fas fa-trash"></i></div>';
-
-            tr.querySelector('input[name="faq_title[]"]').value = row.title;
-            tr.querySelector('textarea').value = row.description || '';
-
-            faqWrap.appendChild(tr);
-            label.pcuRow = tr;
+            var box = hiddenGroup(row, false);
+            faqWrap.appendChild(box);
+            label.pcuRow = box;
         });
     });
 

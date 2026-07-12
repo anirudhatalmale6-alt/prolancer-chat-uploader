@@ -238,6 +238,23 @@
     background: #f1f4ff;
 }
 
+/* Ticking no longer opens a block below, so the tick itself has to be the whole
+   feedback: the row it is on says "this is in the service". */
+.pcu-pick-item:has(input:checked) {
+    background: #eef1ff;
+}
+
+.pcu-pick-item:has(input:checked) .pcu-pick-text {
+    color: #1d2433;
+    font-weight: 600;
+}
+
+/* The hidden inputs a ticked item adds to the form. Nothing to see — but give
+   them zero footprint so they cannot introduce a stray gap between blocks. */
+.pcu-pick-hidden {
+    display: none;
+}
+
 .pcu-pick-item input[type="checkbox"] {
     width: 17px;
     height: 17px;

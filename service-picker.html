@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+  Create Service, shaped like the real form: an .additional-services container
+  and a .faqs container, each with one hand-typed block already in it. The
+  library picker is injected above each. Ticking must NOT open a block — it must
+  add hidden fields that serialise exactly like a typed one.
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="assets/pcu-library.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 30px; background: #f7f8fb; }
+    .row { display: flex; gap: 10px; align-items: center; background: #fff; padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+    .col-sm-1 { flex: 0 0 44px; text-align: center; }
+    .col-sm-10 { flex: 1; }
+    input, textarea { width: 100%; padding: 8px 12px; border: 1px solid #dfe3ec; border-radius: 8px; box-sizing: border-box; }
+    h4 { margin: 24px 0 8px; }
+  </style>
+</head>
+<body>
+  <form id="create-service-form">
+    <h4>Add Additional Service</h4>
+    <div class="additional-services">
+      <div class="row">
+        <div class="col-sm-1"><i class="fa fa-bars"></i></div>
+        <div class="col-sm-10">
+          <input type="text" name="additional_service_title[]" value="Typed by hand">
+          <textarea name="additional_service_description[]">A typed description</textarea>
+          <input type="text" data-num="1" name="additional_service_price[]" value="15">
+        </div>
+        <div class="col-sm-1"><i class="fas fa-trash"></i></div>
+      </div>
+    </div>
+
+    <h4>FAQ</h4>
+    <div class="faqs">
+      <div class="row">
+        <div class="col-sm-1"><i class="fa fa-bars"></i></div>
+        <div class="col-sm-10">
+          <input type="text" name="faq_title[]" value="A typed FAQ">
+          <textarea name="faq_description[]">Typed answer</textarea>
+        </div>
+        <div class="col-sm-1"><i class="fas fa-trash"></i></div>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    window.PCU_LIB = {
+      ajaxUrl: '/stub', nonce: 'x', currency: '$',
+      extras: [
+        { id: 'e1', title: 'Rush delivery', description: 'Done in 24h', price: '50' },
+        { id: 'e2', title: 'Source files',  description: 'PSD + AI',    price: '30' }
+      ],
+      faqs: [
+        { id: 'f1', title: 'Do you offer refunds?', description: 'Yes, within 14 days.' }
+      ]
+    };
+  </script>
+  <script src="assets/pcu-service-form.js"></script>
+  <script src="assets/pcu-library.js"></script>
+</body>
+</html>
