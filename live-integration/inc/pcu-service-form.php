@@ -190,3 +190,43 @@ function pcu_create_project() {
 
 	prolancer_ajax_create_project();
 }
+
+/**
+ * Is this the Create/Edit Service screen?
+ */
+function pcu_is_service_form_screen() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only check.
+	$fed = isset( $_GET['fed'] ) ? sanitize_key( wp_unslash( $_GET['fed'] ) ) : '';
+
+	return 'create-service' === $fed;
+}
+
+/**
+ * Numeric fields and the delete icon — that screen only.
+ */
+function pcu_service_form_assets() {
+	if ( ! pcu_is_service_form_screen() ) {
+		return;
+	}
+
+	$dir = get_stylesheet_directory();
+	$uri = get_stylesheet_directory_uri();
+
+	$ver = function_exists( 'pcu_asset_version' ) ? 'pcu_asset_version' : 'filemtime';
+
+	wp_enqueue_style(
+		'pcu-service-form',
+		$uri . '/assets/css/pcu-service-form.css',
+		array(),
+		call_user_func( $ver, $dir . '/assets/css/pcu-service-form.css' )
+	);
+
+	wp_enqueue_script(
+		'pcu-service-form',
+		$uri . '/assets/js/pcu-service-form.js',
+		array(),
+		call_user_func( $ver, $dir . '/assets/js/pcu-service-form.js' ),
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'pcu_service_form_assets' );

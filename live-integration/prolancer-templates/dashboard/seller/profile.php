@@ -58,7 +58,7 @@ $seller	  =	get_post($seller_id); ?>
 					</div>
 					<div class="col-md-12">
 						<label><?php echo esc_html__('Description','prolancer'); ?></label>
-						<textarea id="editor" name="description"cols="30" rows="10" class="form-control"><?php echo esc_html($seller->post_content); ?></textarea>
+						<textarea name="description"cols="30" rows="10" class="form-control"><?php echo esc_html($seller->post_content); ?></textarea>
 					</div>
 					<div class="col-md-12">
 						<?php pcu_avatar_uploader( $seller_id, 'seller_profile_attachment' ); ?>

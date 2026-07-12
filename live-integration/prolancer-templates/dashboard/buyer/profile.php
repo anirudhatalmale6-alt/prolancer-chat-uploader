@@ -40,7 +40,7 @@ $buyer	  =	get_post($buyer_id); ?>
 					</div>
 					<div class="col-md-12">
 						<label><?php echo esc_html__('Description','prolancer'); ?></label>
-						<textarea id="editor" name="description"cols="30" rows="10" class="form-control"><?php echo esc_html($buyer->post_content); ?></textarea>
+						<textarea name="description"cols="30" rows="10" class="form-control"><?php echo esc_html($buyer->post_content); ?></textarea>
 					</div>
 					<div class="col-md-12">
 						<?php pcu_avatar_uploader( $buyer_id, 'buyer_profile_attachment' ); ?>

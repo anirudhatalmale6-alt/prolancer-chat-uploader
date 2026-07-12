@@ -77,7 +77,7 @@ if (!empty($service)) {
             </div>
             <div class="col-md-12 mb-5">
                 <label><?php echo esc_html__('Description','prolancer'); ?></label>
-                <textarea id="editor" name="description" cols="30" rows="10" class="form-control"><?php echo !empty($service) ? esc_html($service->post_content) : ''; ?></textarea>
+                <textarea name="description" cols="30" rows="10" class="form-control"><?php echo !empty($service) ? esc_html($service->post_content) : ''; ?></textarea>
             </div>
             <div class="col-md-12 mb-4">
                 <label><?php echo esc_html__('Featured Images','prolancer'); ?></label>
@@ -153,7 +153,7 @@ if (!empty($service)) {
                                 <tr>
                                     <td><?php echo esc_html__( 'Revisions', 'prolancer' ) ?></td>
                                     <?php for ($i=0; $i < $prolancer_packages; $i++) { ?>
-                                        <td><input type="number" name="package_revision[]" placeholder="<?php echo esc_attr('3') ?>" value="<?php if(!empty($packages[$i]['revision'])){echo esc_attr($packages[$i]['revision']);} ?>"></td>
+                                        <td><input type="text" inputmode="decimal" data-num="1" name="package_revision[]" placeholder="<?php echo esc_attr('3') ?>" value="<?php if(!empty($packages[$i]['revision'])){echo esc_attr($packages[$i]['revision']);} ?>"></td>
                                     <?php } ?>
                                 </tr>
                                 <?php if ($prolancer_package_feature) {
@@ -176,7 +176,7 @@ if (!empty($service)) {
                                 <tr>
                                     <td><?php echo esc_html__( 'Price', 'prolancer' ) ?></td>
                                     <?php for ($i=0; $i < $prolancer_packages; $i++) { ?>
-                                        <td><input type="number" name="package_price[]" placeholder="<?php echo esc_attr( get_woocommerce_currency_symbol()); ?>" value="<?php if(!empty($packages[$i]['price'])){echo esc_attr($packages[$i]['price']);} ?>"></td>
+                                        <td><input type="text" inputmode="decimal" data-num="1" name="package_price[]" placeholder="<?php echo esc_attr( get_woocommerce_currency_symbol()); ?>" value="<?php if(!empty($packages[$i]['price'])){echo esc_attr($packages[$i]['price']);} ?>"></td>
                                     <?php } ?>
                                 </tr>
                             </tbody>
@@ -200,7 +200,7 @@ if (!empty($service)) {
                                 <textarea name='additional_service_description[]' class="form-control" placeholder="<?php echo esc_html__( 'Description', 'prolancer' ); ?>"><?php echo esc_html($additional_service['description']); ?></textarea>
                                 <div class="input-group mb-3">
                                   <span class="input-group-text">$</span>
-                                  <input type="number" name='additional_service_price[]' class="form-control mb-0" value="<?php echo esc_attr($additional_service['price']); ?>" placeholder="<?php echo esc_html__( 'Price', 'prolancer' ); ?>">
+                                  <input type="text" inputmode="decimal" data-num="1" name='additional_service_price[]' class="form-control mb-0" value="<?php echo esc_attr($additional_service['price']); ?>" placeholder="<?php echo esc_html__( 'Price', 'prolancer' ); ?>">
                                 </div>                                                      
                             </div>
                             <div class="col-sm-1">

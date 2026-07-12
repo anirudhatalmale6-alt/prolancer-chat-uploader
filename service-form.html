@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Create Service form, shaped like the patched template: numeric fields carry
+  data-num (type=text, so no spinners), the Additional Service block carries the
+  plugin's dashicons trash, the FAQ block carries Font Awesome's. Both deletes
+  must work and look the same.
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="assets/pcu-service-form.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 30px; background:#f7f8fb; }
+    .row { display:flex; gap:10px; align-items:center; margin-bottom:12px; background:#fff; padding:12px; border-radius:10px; }
+    .col-sm-1 { flex:0 0 44px; text-align:center; }
+    .col-sm-10 { flex:1; }
+    input { padding:8px 12px; border:1px solid #dfe3ec; border-radius:8px; }
+    h4 { margin: 20px 0 8px; }
+  </style>
+</head>
+<body>
+  <h4>Price / revisions (numbers only, no spinners)</h4>
+  <input type="text" inputmode="decimal" data-num="1" name="package_price[]" placeholder="$" id="price">
+  <input type="text" inputmode="decimal" data-num="1" name="package_revision[]" placeholder="3" id="rev">
+
+  <h4>Add Additional Service</h4>
+  <div class="additional-services">
+    <!-- server-rendered block: Font Awesome (works today) -->
+    <div class="row" id="extra-fa">
+      <div class="col-sm-1"><i class="fa fa-bars"></i></div>
+      <div class="col-sm-10"><input type="text" value="Existing extra"></div>
+      <div class="col-sm-1"><i class="fas fa-trash"></i></div>
+    </div>
+    <!-- the block the plugin's AJAX returns: dashicons (invisible on front end) -->
+    <div class="row" id="extra-dash">
+      <div class="col-sm-1"><i class="dashicons dashicons-menu"></i></div>
+      <div class="col-sm-10"><input type="text" value="AJAX-added extra"></div>
+      <div class="col-sm-1"><i class="dashicons dashicons-trash"></i></div>
+    </div>
+  </div>
+
+  <h4>FAQ</h4>
+  <div class="faqs">
+    <div class="row" id="faq-1">
+      <div class="col-sm-1"><i class="fa fa-bars"></i></div>
+      <div class="col-sm-10"><input type="text" value="An FAQ"></div>
+      <div class="col-sm-1"><i class="fas fa-trash"></i></div>
+    </div>
+  </div>
+
+  <script src="assets/pcu-service-form.js"></script>
+</body>
+</html>

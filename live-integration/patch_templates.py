@@ -68,6 +68,24 @@ SELECT_FORMS = [
     'buyer/create-project.php',
 ]
 
+# The rich-text editor binds to `#editor` (plugin.js: $('#editor').richText()).
+# Take the id away and it never attaches — the textarea stays a plain textarea,
+# with no fighting the plugin and no editor left half-initialised.
+# Create Service and the Profile pages only; the client did not ask for the
+# project form, so its editor is left alone.
+PLAIN_TEXTAREA = [
+    'seller/create-service.php',
+    'seller/profile.php',
+    'buyer/profile.php',
+]
+
+# Price / revision fields. type="number" draws the spinner arrows the client does
+# not want. text + inputmode="decimal" keeps the numeric keypad on a phone and
+# still allows paste; pcu-num.js is what actually keeps non-numbers out.
+NUMERIC_FIELDS = [
+    'seller/create-service.php',
+]
+
 # The plugin's single-attachment download block, in all its whitespace variants.
 ATTACH_BLOCK = re.compile(
     r'<\?php\s+if\s*\(\s*\$message->attachment_id\s*\)\s*\{\s*\?>.*?<\?php\s*\}\s*\?>',
@@ -213,6 +231,51 @@ for rel in SELECT_FORMS:
 
     print('%-42s placeholders fixed:%d' % (rel, n))
 
+# --- plain textarea: drop the id the rich-text editor binds to ---
+
+for rel in PLAIN_TEXTAREA:
+    dst = os.path.join(OUT, rel)
+    # These files have already been written by an earlier pass; edit in place so
+    # the passes compose instead of overwriting each other.
+    src = dst if os.path.exists(dst) else os.path.join(SRC, rel)
+    code = open(src, encoding='utf-8').read()
+
+    code, n = re.subn(r'<textarea\s+id="editor"\s+', '<textarea ', code)
+
+    if n == 0:
+        fails.append('%s: id="editor" NOT FOUND' % rel)
+    if 'id="editor"' in code:
+        fails.append('%s: an id="editor" survived' % rel)
+
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    open(dst, 'w', encoding='utf-8').write(code)
+    print('%-42s rich-editor removed:%d' % (rel, n))
+
+# --- numeric fields: no spinners ---
+
+for rel in NUMERIC_FIELDS:
+    dst = os.path.join(OUT, rel)
+    src = dst if os.path.exists(dst) else os.path.join(SRC, rel)
+    code = open(src, encoding='utf-8').read()
+
+    # data-num, NOT class="pcu-num": these inputs already carry a class
+    # attribute ("form-control mb-0"), and a second one would be a DUPLICATE
+    # class attribute. The browser keeps the first and silently drops the
+    # other — which would have stripped the theme's styling off the field.
+    code, n = re.subn(
+        r'type="number"',
+        'type="text" inputmode="decimal" data-num="1"',
+        code,
+    )
+
+    if n == 0:
+        fails.append('%s: no type="number" found' % rel)
+    if 'type="number"' in code:
+        fails.append('%s: a type="number" survived' % rel)
+
+    open(dst, 'w', encoding='utf-8').write(code)
+    print('%-42s number->text:%d' % (rel, n))
+
 # --- profile pages: swap the profile-picture dropzone for the round control ---
 
 # The whole <div class="col-md-12"> that wraps the profile-picture dropzone. It
@@ -230,7 +293,11 @@ PROFILE_BLOCK = re.compile(
 )
 
 for rel, (id_var, meta_key) in PROFILE.items():
-    src = os.path.join(SRC, rel)
+    dst_existing = os.path.join(OUT, rel)
+    # Compose with earlier passes (the plain-textarea edit already touched these
+    # files). Reading from SRC here would silently undo it.
+    src = dst_existing if os.path.exists(dst_existing) else os.path.join(SRC, rel)
+
     if not os.path.exists(src):
         fails.append('%s: MISSING' % rel)
         continue

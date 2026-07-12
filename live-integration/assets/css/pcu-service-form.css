@@ -1,0 +1,96 @@
+/**
+ * Create / Edit Service — form styling.
+ * Loaded on ?fed=create-service only.
+ */
+
+/* --------------------------------------------------------------------------
+   Numeric fields — no spinner arrows
+   --------------------------------------------------------------------------
+   The template already swaps type="number" for type="text", which is what
+   actually removes the arrows. These rules stay as a belt-and-braces guard for
+   any type="number" the theme or a plugin adds elsewhere on this form.
+   -------------------------------------------------------------------------- */
+input[data-num]::-webkit-outer-spin-button,
+input[data-num]::-webkit-inner-spin-button,
+.packages input[type="number"]::-webkit-outer-spin-button,
+.packages input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[data-num],
+.packages input[type="number"] {
+    -moz-appearance: textfield;     /* Firefox draws its own spinner */
+    appearance: textfield;
+}
+
+/* --------------------------------------------------------------------------
+   Delete icon on an Additional Service block
+   --------------------------------------------------------------------------
+   The block returned by the plugin's AJAX carries `dashicons dashicons-trash`.
+   Dashicons is a WordPress ADMIN font and is not loaded on the front end, so
+   the icon rendered as nothing — invisible and unclickable. That is why FAQ had
+   a working delete and this did not.
+
+   FAQ's block uses Font Awesome, which IS loaded. So rather than leave a dead
+   glyph on the page, draw the dashicon AS the Font Awesome trash: same icon,
+   same size, same colour, sitting in the same place. The two now match, which
+   is what the client asked for ("FAQ already has. Use the same").
+   -------------------------------------------------------------------------- */
+.additional-services .dashicons-trash,
+.additional-services .dashicons {
+    /* Kill the dashicons font, which isn't here anyway. */
+    font-family: inherit;
+    width: auto;
+    height: auto;
+}
+
+.additional-services .dashicons-trash::before {
+    /* Font Awesome's trash glyph — the same one the FAQ rows use. */
+    font-family: 'Font Awesome 5 Free', 'Font Awesome 6 Free', FontAwesome;
+    font-weight: 900;
+    content: '\f2ed';
+    font-size: 16px;
+}
+
+/* Both trash icons — the server-rendered Font Awesome one and the rewritten
+   dashicon — get the same target size and the same hand cursor. A 16px glyph is
+   a small thing to hit. */
+.additional-services .fa-trash,
+.additional-services .fa-trash-alt,
+.additional-services .dashicons-trash,
+.faqs .fa-trash,
+.faqs .fa-trash-alt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: #98a2b3;
+    cursor: pointer;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+.additional-services .fa-trash:hover,
+.additional-services .fa-trash-alt:hover,
+.additional-services .dashicons-trash:hover,
+.faqs .fa-trash:hover,
+.faqs .fa-trash-alt:hover {
+    color: #e5252a;
+    background: #fdeeee;
+}
+
+/* The drag handle sits in the same narrow column; give it the same footprint so
+   the two columns line up between an FAQ row and an Additional Service row. */
+.additional-services .fa-bars,
+.additional-services .dashicons-menu,
+.faqs .fa-bars {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: #c7ccd8;
+    cursor: grab;
+}
