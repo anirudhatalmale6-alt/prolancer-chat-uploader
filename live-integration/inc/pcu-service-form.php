@@ -154,12 +154,76 @@ function pcu_sanitize_form_payload( $key ) {
 }
 
 /**
+ * The "Add Extra Service" block, rebuilt.
+ *
+ * WHY THIS REPLACES THE PLUGIN'S
+ *
+ * The plugin's version of this AJAX response ships two things that do not work
+ * on the front end:
+ *
+ *   <i class="dashicons dashicons-trash"></i>   and   <input type="number">
+ *
+ * dashicons is the WordPress ADMIN icon font. It is not loaded on the public
+ * side of the site, so that icon renders as nothing — or, once something else
+ * gives it a size, as an empty box. Either way it cannot be seen or clicked,
+ * which is exactly why "Add Additional Service" had no working Delete while FAQ
+ * did: the FAQ block is built in JS with Font Awesome, which IS loaded.
+ *
+ * Trying to redraw the dashicon as Font Awesome from CSS meant guessing the
+ * font-family the theme registered, and the guess was wrong — it rendered a
+ * tofu box. So do not guess. Emit the SAME icon classes the FAQ block uses and
+ * is demonstrably rendering: `fa fa-bars` and `fas fa-trash`.
+ *
+ * The price field gets the same treatment as the rest of the form: type="text"
+ * with data-num, so it has no spinner arrows and accepts numbers only. The
+ * plugin's copy still said type="number", which is why a newly-added block kept
+ * its spinner even after the template was fixed — the template is not where
+ * this markup comes from.
+ *
+ * The plugin's own file is untouched; its handler is unhooked and this runs in
+ * its place.
+ */
+function pcu_ajax_get_additional_service() {
+	if ( empty( $_REQUEST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) ), 'additional_service_nonce' ) ) {
+		wp_die( esc_html__( 'Nonce validation failed', 'prolancer' ) );
+	}
+
+	$currency = class_exists( 'WooCommerce' ) ? get_woocommerce_currency_symbol() : '$';
+
+	?>
+	<div class="row mb-4">
+		<div class="col-sm-1">
+			<i class="fa fa-bars"></i>
+		</div>
+		<div class="col-sm-10 my-auto">
+			<input type="text" name="additional_service_title[]" class="form-control"
+				placeholder="<?php esc_attr_e( 'Title', 'prolancer' ); ?>">
+			<textarea name="additional_service_description[]" class="form-control"
+				placeholder="<?php esc_attr_e( 'Description', 'prolancer' ); ?>"></textarea>
+			<div class="input-group mb-3">
+				<span class="input-group-text"><?php echo esc_html( $currency ); ?></span>
+				<input type="text" inputmode="decimal" data-num="1" name="additional_service_price[]"
+					class="form-control mb-0" placeholder="<?php esc_attr_e( 'Price', 'prolancer' ); ?>">
+			</div>
+		</div>
+		<div class="col-sm-1">
+			<i class="fas fa-trash"></i>
+		</div>
+	</div>
+	<?php
+
+	wp_die();
+}
+
+/**
  * Wrap the plugin's create/update handlers — service AND project.
  */
 function pcu_wrap_form_handlers() {
 	$handlers = array(
 		'prolancer_ajax_create_service' => 'pcu_create_service',
 		'prolancer_ajax_create_project' => 'pcu_create_project',
+		// The block returned by "Add Extra Service" — see above.
+		'prolancer_ajax_get_additional_service' => 'pcu_ajax_get_additional_service',
 	);
 
 	foreach ( $handlers as $original => $ours ) {
