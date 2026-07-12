@@ -24,10 +24,17 @@
     border: 2px dashed #c7ccd8;
     border-radius: 50%;
     background: #f5f7fb;
-    cursor: pointer;                /* a hand, not an arrow, on the control */
     overflow: hidden;
     display: block;
     transition: border-color .15s ease, background-color .15s ease;
+}
+
+/* The hand must be on the CHILDREN too. The photo and the camera icon sit on top
+   of the button, and the theme's blanket `button {}` rule resets the cursor — so
+   pointing at the icon (the one place everybody aims for) showed an arrow. */
+.pcu-avatar-ring,
+.pcu-avatar-ring * {
+    cursor: pointer;
 }
 
 .pcu-avatar-upload.has-image .pcu-avatar-ring {
@@ -144,21 +151,34 @@ body.pcu-crop-open {
     color: #1d2433;
 }
 
+/* NO scrollbars, and the picture always fits — whatever shape it is.
+   ---------------------------------------------------------------------------
+   This box needs an EXPLICIT height, and that is the whole fix. Cropper.js sizes
+   its stage from the offsetWidth/offsetHeight of the image's PARENT — this
+   element. Left to size itself, the parent took the height of the raw image
+   (2500px for a phone photo), so Cropper built a 2500px stage inside a 500px
+   modal and the modal grew scrollbars.
+   Pin the height, and Cropper fits the picture into it instead (viewMode 2).
+
+   NO PADDING, for the same reason. offsetHeight INCLUDES padding, but the stage
+   is inserted as a CHILD — inside that padding. So any padding here makes the
+   stage exactly that much taller than the room it actually has, and the box
+   overflows by the padding. The dialog provides the breathing room instead. */
 .pcu-crop-body {
-    padding: 18px 22px;
+    height: 52vh;
+    min-height: 260px;
+    max-height: 460px;
+    padding: 0;
     background: #f5f7fb;
-    overflow: auto;
+    overflow: hidden;
 }
 
-/* Cropper needs a bounded, block image to attach to. */
+/* Bound the raw <img> too — it is in the page for the instant before Cropper
+   hides it, and unbounded it would flash at full size. */
 .pcu-crop-image {
     display: block;
     max-width: 100%;
-}
-
-/* Keep the working area a sensible height on tall screens. */
-.pcu-crop-body .cropper-container {
-    max-height: 60vh;
+    max-height: 100%;
 }
 
 .pcu-crop-foot {

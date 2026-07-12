@@ -341,12 +341,16 @@
     overflow: hidden;
 }
 
-/* Same `contain` as the sent thumbnail, so what you see before sending is what
-   lands in the chat. */
+/* `cover` here, deliberately — the opposite of the sent tile.
+   This is a 44px SQUARE. A portrait phone clip letterboxed into it leaves bars
+   down the sides, a landscape one leaves bars top and bottom, and at 44px the
+   bars are most of what you see. It is an identifier in a list, not the picture
+   itself, so it fills the square. The tile in the chat, which IS the picture,
+   still shows the whole frame. */
 .pcu-file-thumb img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     display: block;
 }
 
@@ -1284,6 +1288,18 @@
 }
 
 .chat-list.message_sender .col-9 {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+/* …and the same again for the box you type in. The inbox puts your own avatar
+   next to the composer too; it is the same photo, telling you the same thing you
+   already know. The message box takes the width back. */
+#reply-message-form .col-2 {
+    display: none;
+}
+
+#reply-message-form .col-10 {
     flex: 0 0 100%;
     max-width: 100%;
 }

@@ -47,14 +47,26 @@
 
             cropper = new window.Cropper(image, {
                 aspectRatio: 1,          // the brief: 1:1
-                viewMode: 1,             // never let the crop box leave the image
-                autoCropArea: 1,
+
+                // viewMode 2, not 1: the whole picture is fitted INSIDE the box,
+                // so it is never cut off by the modal and never needs a scrollbar.
+                viewMode: 2,
+
+                // 0.8, not 1. At 1 the crop box starts the same size as the
+                // picture, so there is nothing to drag and nothing to resize —
+                // which makes a crop tool pointless. Starting smaller leaves room
+                // to move it and pull its corners.
+                autoCropArea: 0.8,
+
                 background: false,
-                movable: true,
-                zoomable: true,
+                movable: true,           // drag the picture under the box
+                zoomable: true,          // and scroll to zoom it
+                cropBoxMovable: true,    // or drag the box itself
+                cropBoxResizable: true,  // and resize it by the handles
                 rotatable: false,
                 scalable: false,
-                responsive: true
+                responsive: true,
+                dragMode: 'move'
             });
         };
         reader.readAsDataURL(file);
