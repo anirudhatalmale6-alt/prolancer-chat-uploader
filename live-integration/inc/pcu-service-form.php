@@ -318,8 +318,11 @@ function pcu_wizard_nav() {
  * exactly where it is — the wizard never touches how the service is saved.
  */
 function pcu_wizard_controls() {
+	// offset-lg-3 pushes these past the stepper column, so they sit under the
+	// FORM — which is what they act on. Without it they landed under the
+	// navigation, which reads as if they belonged to the step list.
 	?>
-	<div class="pcu-wizard-controls">
+	<div class="pcu-wizard-controls col-12 col-lg-9 offset-lg-3">
 		<button type="button" class="pcu-wiz-prev prolancer-btn" hidden>
 			<?php esc_html_e( 'Previous', 'prolancer' ); ?>
 		</button>

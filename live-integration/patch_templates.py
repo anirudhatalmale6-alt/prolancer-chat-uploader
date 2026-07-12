@@ -423,6 +423,12 @@ def wizard(rel, code):
             '\n            </div>\n' % (i + 1, title, hide, body)
         )
 
+    # Previous/Next go INSIDE the .row, after the last step. Outside it they are
+    # not a grid column, so `offset-lg-3` does nothing and they end up sitting
+    # under the stepper — reading as if they belonged to the step list rather
+    # than to the form they act on.
+    pieces.append('\n            <?php pcu_wizard_controls(); ?>\n')
+
     code = code[:start] + ''.join(pieces) + code[end:]
 
     # The stepper itself is printed by PHP, so its numbers and titles come from
@@ -430,8 +436,6 @@ def wizard(rel, code):
     code = code.replace(open_row, open_row + '\n            <?php pcu_wizard_nav(); ?>', 1)
 
     # The submit button sits in the last step; the wizard adds Previous/Next.
-    code = code.replace('</form>', '  <?php pcu_wizard_controls(); ?>\n    </form>', 1)
-
     return code, 'wizard:4 steps'
 
 

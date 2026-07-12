@@ -15,8 +15,23 @@
 /* --------------------------------------------------------------------------
    The stepper
    -------------------------------------------------------------------------- */
+/* The stepper sits on its own tinted panel, as it does in the Frest demo the
+   client picked — there the navigation column is grey and the form is the white
+   card beside it. Mine was white on white, so the two ran together and the
+   stepper read as part of the form rather than as the thing steering it. */
 .pcu-wizard-nav {
     margin-bottom: 24px;
+
+    /* box-sizing explicitly: the padding below must come OUT of the column's
+       width, not be added to it. Bootstrap sets border-box globally so this is
+       usually inherited — but relying on that meant the padded column grew past
+       its 25%, the row no longer fitted, and the form wrapped underneath it. Say
+       it here rather than depend on a global. */
+    box-sizing: border-box;
+    padding: 26px 22px;
+    background: #f5f7fb;
+    border-radius: 12px;
+    align-self: flex-start;     /* hug its content — do not stretch to the form's height */
 }
 
 .pcu-steps {
@@ -119,11 +134,16 @@
 /* --------------------------------------------------------------------------
    Previous / Next
    -------------------------------------------------------------------------- */
+/* Under the FORM, not under the stepper — the markup carries offset-lg-3 to push
+   it past the navigation column. A divider above it so it reads as the form's
+   footer rather than as one more field. */
 .pcu-wizard-controls {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-top: 8px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eceef3;
     flex-wrap: wrap;
 }
 

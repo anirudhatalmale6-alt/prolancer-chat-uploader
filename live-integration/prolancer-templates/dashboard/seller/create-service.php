@@ -274,7 +274,8 @@ if (!empty($service)) {
             </div>
         </div>
             </div>
+
+            <?php pcu_wizard_controls(); ?>
 </div>
-      <?php pcu_wizard_controls(); ?>
     </form>
 </div>
