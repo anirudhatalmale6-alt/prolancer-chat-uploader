@@ -29,6 +29,7 @@
 
     var MB = 1024 * 1024;
     var IMAGE_RE = /^image\//;
+    var VIDEO_RE = /^video\//;
     var THUMB_PX = 88;
 
     // ---------------------------------------------------------------- helpers
@@ -82,41 +83,109 @@
     }
 
     /**
-     * Shrink an image to a thumbnail data URL.
+     * Draw a source (an <img> or a <video>) into a thumbnail data URL.
      *
-     * Downscaling through a canvas rather than pointing an <img> at the full
-     * file: a handful of multi-megapixel photos in the list would otherwise sit
-     * in memory at full size purely to paint 44px rows.
+     * One canvas step for both: read the source's natural size, fit it inside
+     * THUMB_PX, paint, export. Kept separate so an image and a video frame end
+     * up identical once drawn.
+     */
+    function drawThumb(source, natW, natH, done) {
+        if (!natW || !natH) { done(null); return; }
+
+        var scale = Math.min(THUMB_PX / natW, THUMB_PX / natH, 1);
+        var w = Math.max(Math.round(natW * scale), 1);
+        var h = Math.max(Math.round(natH * scale), 1);
+
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(source, 0, 0, w, h);
+
+        try {
+            done(canvas.toDataURL('image/png'));
+        } catch (e) {
+            done(null);   // tainted canvas — fall back to the glyph
+        }
+    }
+
+    /**
+     * A thumbnail for a file the browser is holding but has not uploaded yet.
+     *
+     * Images downscale through a canvas rather than pointing an <img> at the
+     * full file — a few multi-megapixel photos would otherwise sit in memory at
+     * full size just to paint 44px rows.
+     *
+     * Videos show a real frame, the same as they do once sent: the browser can
+     * already decode the file it is about to upload, so there is no reason to
+     * show a grey "MP4" tile. We seek a moment in (frame 0 is often black),
+     * grab one frame, and throw the <video> away.
      */
     function makeThumb(file, done) {
-        if (!IMAGE_RE.test(file.type)) { done(null); return; }
-
-        var reader = new FileReader();
-
-        reader.onerror = function () { done(null); };
-        reader.onload = function () {
-            var img = new Image();
-
-            img.onerror = function () { done(null); };
-            img.onload = function () {
-                var scale = Math.min(THUMB_PX / img.width, THUMB_PX / img.height, 1);
-                var w = Math.max(Math.round(img.width * scale), 1);
-                var h = Math.max(Math.round(img.height * scale), 1);
-
-                var canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-
-                try {
-                    done(canvas.toDataURL('image/png'));
-                } catch (e) {
-                    done(null);   // tainted canvas — fall back to the glyph
-                }
+        if (IMAGE_RE.test(file.type)) {
+            var reader = new FileReader();
+            reader.onerror = function () { done(null); };
+            reader.onload = function () {
+                var img = new Image();
+                img.onerror = function () { done(null); };
+                img.onload = function () { drawThumb(img, img.width, img.height, done); };
+                img.src = reader.result;
             };
-            img.src = reader.result;
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        if (VIDEO_RE.test(file.type)) {
+            makeVideoThumb(file, done);
+            return;
+        }
+
+        done(null);
+    }
+
+    /**
+     * Grab a frame from a not-yet-uploaded video.
+     *
+     * An object URL, not a data URL: a 30 MB clip read into a data URL is a
+     * ~40 MB base64 string held in memory, for one 44px frame. The object URL
+     * points at the file the browser already has, and is revoked the moment the
+     * frame is drawn.
+     */
+    function makeVideoThumb(file, done) {
+        var url = URL.createObjectURL(file);
+        var video = document.createElement('video');
+        var settled = false;
+
+        function finish(result) {
+            if (settled) { return; }
+            settled = true;
+            URL.revokeObjectURL(url);
+            video.removeAttribute('src');
+            done(result);
+        }
+
+        video.muted = true;                 // some browsers block decode without it
+        video.playsInline = true;
+        video.preload = 'metadata';
+
+        video.onloadedmetadata = function () {
+            // A moment in, but never past the end of a very short clip.
+            var seek = Math.min(1, (video.duration || 0) / 2) || 0;
+
+            // Some browsers fire seeked only after a play tick; nudge it.
+            video.currentTime = seek;
         };
-        reader.readAsDataURL(file);
+
+        video.onseeked = function () {
+            drawThumb(video, video.videoWidth, video.videoHeight, finish);
+        };
+
+        video.onerror = function () { finish(null); };
+
+        // A codec the browser cannot decode (e.g. some .mov) would hang forever
+        // otherwise — fall back to the glyph after a moment.
+        window.setTimeout(function () { finish(null); }, 3000);
+
+        video.src = url;
     }
 
     /**

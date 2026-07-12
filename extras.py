@@ -9,6 +9,7 @@ Run:  python3 extras.py
 """
 import http.server
 import json
+import urllib.parse
 import os
 import socketserver
 import sys
@@ -37,8 +38,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        # Stand in for admin-ajax's pcu_presence.
-        body = json.dumps({'success': True, 'data': {'online': online['value']}})
+        # Stand in for admin-ajax's pcu_presence. The real endpoint answers a
+        # comma-separated `profile_ids` with a {id: bool} map, so mirror that:
+        # every requested id reports the current online['value'].
+        length = int(self.headers.get('Content-Length', 0))
+        raw = self.rfile.read(length).decode() if length else ''
+        params = urllib.parse.parse_qs(raw)
+        ids = (params.get('profile_ids', [''])[0] or params.get('profile_id', [''])[0]).split(',')
+        ids = [i for i in ids if i]
+        state = {i: online['value'] for i in ids}
+        body = json.dumps({'success': True, 'data': {'online': state}})
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))

@@ -144,54 +144,106 @@
      * on the site in the last couple of minutes, grey otherwise.
      *
      * Only THEIR avatar — your own name and photo are hidden on your own
-     * messages (you know who you are), so every avatar left in the thread is
+     * messages (you know who you are), so every avatar left in a thread is
      * theirs.
+     *
+     * Two screens, one piece of code. The order chat is a single conversation on
+     * the page. The dashboard inbox is several at once — one tab per person, plus
+     * a contact list down the side — so a conversation is found, not assumed, and
+     * each one carries its own person's id.
+     *
+     * A conversation = whatever element holds a send button. On the inbox that is
+     * the Bootstrap tab pane; on the order chat there is only one, so it is the
+     * document.
      */
-    function otherProfileId() {
-        // The composer's send button already carries it.
-        var button = document.querySelector(SEND + '[data-receiver-id]');
+    function conversations() {
+        var found = [];
 
-        return button ? button.getAttribute('data-receiver-id') : '';
+        [].forEach.call(document.querySelectorAll(SEND + '[data-receiver-id]'), function (button) {
+            var id = button.getAttribute('data-receiver-id');
+            if (!id) { return; }
+
+            found.push({
+                id: id,
+                root: button.closest('.tab-pane') || document,
+                // The inbox's contact list sits OUTSIDE the thread it opens. The
+                // tab and its pane are linked by the pane's id, so the tab can be
+                // found from here and given the same dot.
+                tab: tabFor(button.closest('.tab-pane'))
+            });
+        });
+
+        return found;
     }
 
-    function avatars() {
-        return document.querySelectorAll('.chat-list:not(.message_sender) .col-3 img');
+    /** The contact-list entry that opens this thread, if there is one. */
+    function tabFor(pane) {
+        if (!pane || !pane.id) { return null; }
+
+        return document.querySelector('[data-bs-target="#' + pane.id + '"]');
+    }
+
+    function avatarsIn(root) {
+        // Their messages only. Yours are hidden by the stylesheet, and marking a
+        // hidden avatar would put a dot on a photo nobody can see.
+        return root.querySelectorAll('.chat-list:not(.message_sender) .col-3 img');
     }
 
     /**
-     * Wrap each avatar so the dot has something to sit on, once.
+     * Wrap an avatar so the dot has something to sit on, once.
      *
      * The wrapper is inline-block at the image's own size, so nothing moves.
      */
-    function markAvatars() {
-        [].forEach.call(avatars(), function (img) {
-            if (img.parentNode.classList.contains('pcu-avatar')) { return; }
+    function wrapAvatar(img) {
+        if (!img || img.parentNode.classList.contains('pcu-avatar')) { return; }
 
-            var wrap = document.createElement('span');
-            wrap.className = 'pcu-avatar';
+        var wrap = document.createElement('span');
+        wrap.className = 'pcu-avatar';
 
-            img.parentNode.insertBefore(wrap, img);
-            wrap.appendChild(img);
+        img.parentNode.insertBefore(wrap, img);
+        wrap.appendChild(img);
 
-            var dot = document.createElement('span');
-            dot.className = 'pcu-dot';
-            wrap.appendChild(dot);
+        var dot = document.createElement('span');
+        dot.className = 'pcu-dot';
+        wrap.appendChild(dot);
+    }
+
+    function markAvatars(chats) {
+        chats.forEach(function (chat) {
+            [].forEach.call(avatarsIn(chat.root), wrapAvatar);
+
+            if (chat.tab) { wrapAvatar(chat.tab.querySelector('img')); }
         });
     }
 
-    function paint(online) {
-        [].forEach.call(document.querySelectorAll('.pcu-avatar'), function (wrap) {
+    /**
+     * @param {Object} chat   One conversation.
+     * @param {boolean} online Are they about?
+     */
+    function paint(chat, online) {
+        var wraps = [].slice.call(chat.root.querySelectorAll('.pcu-avatar'));
+
+        if (chat.tab) {
+            wraps = wraps.concat([].slice.call(chat.tab.querySelectorAll('.pcu-avatar')));
+        }
+
+        wraps.forEach(function (wrap) {
             wrap.classList.toggle('is-online', !!online);
             wrap.classList.toggle('is-offline', !online);
-            wrap.querySelector('.pcu-dot').title = online ? 'Online' : 'Offline';
+
+            // data-tip, NOT title: the same styled tooltip the attachments use.
+            // The browser's own bubble cannot be styled and arrives on its own
+            // schedule. Put it on the WRAPPER, not the dot — a 10px dot is a
+            // hard thing to hover deliberately; the avatar is not.
+            wrap.setAttribute('data-tip', online ? 'Online' : 'Offline');
         });
     }
 
-    function ping(profileId) {
+    function ping(chats) {
         var body = new URLSearchParams();
         body.set('action', 'pcu_presence');
         body.set('nonce', CFG.nonce);
-        body.set('profile_id', profileId);
+        body.set('profile_ids', chats.map(function (c) { return c.id; }).join(','));
 
         return window.fetch(CFG.ajaxUrl, {
             method: 'POST',
@@ -200,7 +252,11 @@
         })
             .then(function (r) { return r.json(); })
             .then(function (r) {
-                if (r && r.success) { paint(r.data.online); }
+                if (!r || !r.success) { return; }
+
+                chats.forEach(function (chat) {
+                    paint(chat, !!r.data.online[chat.id]);
+                });
             })
             .catch(function () { /* a dropped ping is not worth a broken chat */ });
     }
@@ -208,29 +264,29 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (!CFG.ajaxUrl || !window.fetch) { return; }
 
-        var profileId = otherProfileId();
-        if (!profileId) { return; }          // no composer: a read-only thread
+        var chats = conversations();
+        if (!chats.length) { return; }        // no composer: a read-only thread
 
-        markAvatars();
-        ping(profileId);
+        markAvatars(chats);
+        ping(chats);
 
         var timer = window.setInterval(function () {
             // Don't hold a hidden tab online. The stamp keeps them "online" for
             // the rest of the window, then they go grey — which is the truth.
             if (document.hidden) { return; }
-            ping(profileId);
+            ping(chats);
         }, CFG.everyMs || 45000);
 
         // Coming back to the tab should update immediately, not in 45 seconds.
         document.addEventListener('visibilitychange', function () {
-            if (!document.hidden) { ping(profileId); }
+            if (!document.hidden) { ping(chats); }
         });
 
         // A message arriving means the sender is demonstrably online — and gives
         // us a fresh avatar to mark up.
         document.addEventListener('pcu:appended', function () {
-            markAvatars();
-            ping(profileId);
+            markAvatars(chats);
+            ping(chats);
         });
 
         window.addEventListener('beforeunload', function () {
