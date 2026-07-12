@@ -338,6 +338,20 @@ function pcu_library_render( $which ) {
 							</td>
 						</tr>
 					<?php else : ?>
+						<?php
+						/*
+						 * A SAVED row shows as plain text, not as a form field.
+						 *
+						 * A page full of input boxes reads as an unfinished form —
+						 * it invites you to fill it in and makes you wonder whether
+						 * anything was actually saved. A saved row is a record, so
+						 * it looks like one. The pencil turns it back into fields
+						 * when the seller actually wants to change it.
+						 *
+						 * Both states are rendered here and CSS shows one of them,
+						 * so switching is instant and there is nothing to fetch.
+						 */
+						?>
 						<?php foreach ( $rows as $row ) : ?>
 							<tr data-id="<?php echo esc_attr( $row['id'] ); ?>">
 								<td class="pcu-lib-check">
@@ -345,26 +359,43 @@ function pcu_library_render( $which ) {
 										aria-label="<?php echo esc_attr( $row['title'] ); ?>">
 								</td>
 								<td>
-									<input type="text" class="form-control pcu-lib-title"
-										value="<?php echo esc_attr( $row['title'] ); ?>"
-										placeholder="<?php echo $is_extras ? esc_attr__( 'Name of extra', 'prolancer' ) : esc_attr__( 'FAQ name', 'prolancer' ); ?>">
-									<?php if ( ! $is_extras ) : ?>
-										<textarea class="form-control pcu-lib-desc"
-											placeholder="<?php esc_attr_e( 'Answer', 'prolancer' ); ?>"><?php echo esc_textarea( isset( $row['description'] ) ? $row['description'] : '' ); ?></textarea>
-									<?php endif; ?>
+									<div class="pcu-lib-view">
+										<span class="pcu-lib-view-title"><?php echo esc_html( $row['title'] ); ?></span>
+										<?php if ( ! $is_extras && ! empty( $row['description'] ) ) : ?>
+											<span class="pcu-lib-view-desc"><?php echo esc_html( $row['description'] ); ?></span>
+										<?php endif; ?>
+									</div>
+
+									<div class="pcu-lib-edit">
+										<input type="text" class="form-control pcu-lib-title"
+											value="<?php echo esc_attr( $row['title'] ); ?>"
+											placeholder="<?php echo $is_extras ? esc_attr__( 'Name of extra', 'prolancer' ) : esc_attr__( 'FAQ name', 'prolancer' ); ?>">
+										<?php if ( ! $is_extras ) : ?>
+											<textarea class="form-control pcu-lib-desc"
+												placeholder="<?php esc_attr_e( 'Answer', 'prolancer' ); ?>"><?php echo esc_textarea( isset( $row['description'] ) ? $row['description'] : '' ); ?></textarea>
+										<?php endif; ?>
+									</div>
 								</td>
 								<?php if ( $is_extras ) : ?>
 									<td class="pcu-lib-price">
-										<div class="input-group">
-											<span class="input-group-text"><?php echo esc_html( $currency ); ?></span>
-											<input type="text" inputmode="decimal" data-num="1"
-												class="form-control mb-0 pcu-lib-price-input"
-												value="<?php echo esc_attr( isset( $row['price'] ) ? $row['price'] : '' ); ?>"
-												placeholder="<?php esc_attr_e( 'Price', 'prolancer' ); ?>">
+										<div class="pcu-lib-view">
+											<span class="pcu-lib-view-price"><?php echo esc_html( $currency . ( isset( $row['price'] ) ? $row['price'] : '' ) ); ?></span>
+										</div>
+
+										<div class="pcu-lib-edit">
+											<div class="input-group">
+												<span class="input-group-text"><?php echo esc_html( $currency ); ?></span>
+												<input type="text" inputmode="decimal" data-num="1"
+													class="form-control mb-0 pcu-lib-price-input"
+													value="<?php echo esc_attr( isset( $row['price'] ) ? $row['price'] : '' ); ?>"
+													placeholder="<?php esc_attr_e( 'Price', 'prolancer' ); ?>">
+											</div>
 										</div>
 									</td>
 								<?php endif; ?>
 								<td class="pcu-lib-actions">
+									<i class="fas fa-pen pcu-lib-edit-btn" role="button" tabindex="0"
+										aria-label="<?php esc_attr_e( 'Edit', 'prolancer' ); ?>"></i>
 									<i class="fas fa-trash pcu-lib-delete" role="button" tabindex="0"
 										aria-label="<?php esc_attr_e( 'Remove', 'prolancer' ); ?>"></i>
 								</td>

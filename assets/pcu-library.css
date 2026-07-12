@@ -44,6 +44,68 @@
     vertical-align: top;
 }
 
+/* --------------------------------------------------------------------------
+   Saved rows read as records, not as an unfinished form
+   --------------------------------------------------------------------------
+   A saved row shows its text. The pencil turns that row — and only that row —
+   into fields. Both states are in the markup and CSS picks one, so switching is
+   instant and nothing has to be fetched or rebuilt.
+   -------------------------------------------------------------------------- */
+.pcu-lib tr .pcu-lib-edit {
+    display: none;
+}
+
+.pcu-lib tr.is-editing .pcu-lib-edit {
+    display: block;
+}
+
+.pcu-lib tr.is-editing .pcu-lib-view {
+    display: none;
+}
+
+.pcu-lib-view-title {
+    display: block;
+    color: #1d2433;
+}
+
+.pcu-lib-view-desc {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #6b7280;
+    white-space: pre-line;      /* a typed line break in an answer survives */
+}
+
+.pcu-lib-view-price {
+    display: block;
+    font-weight: 600;
+    color: #1d2433;
+}
+
+.pcu-lib-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: #98a2b3;
+    cursor: pointer;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+.pcu-lib-edit-btn:hover,
+.pcu-lib-edit-btn:focus-visible {
+    color: #6787fe;
+    background: #eef1ff;
+}
+
+/* While a row is being edited, its pencil reads as "done". */
+.pcu-lib tr.is-editing .pcu-lib-edit-btn {
+    color: #6787fe;
+    background: #eef1ff;
+}
+
 .pcu-lib .prolancer-table textarea {
     min-height: 70px;
     margin-top: 8px;

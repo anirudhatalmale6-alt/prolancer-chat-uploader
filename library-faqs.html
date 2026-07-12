@@ -33,19 +33,28 @@
 					</tr>
 				</thead>
 				<tbody class="pcu-lib-rows">
-																		<tr data-id="f1">
+																								<tr data-id="f1">
 								<td class="pcu-lib-check">
 									<input type="checkbox" class="pcu-lib-row-check"
 										aria-label="Do you offer refunds?">
 								</td>
 								<td>
-									<input type="text" class="form-control pcu-lib-title"
-										value="Do you offer refunds?"
-										placeholder="FAQ name">
-																			<textarea class="form-control pcu-lib-desc"
-											placeholder="Answer">Yes, within 14 days.</textarea>
-																	</td>
+									<div class="pcu-lib-view">
+										<span class="pcu-lib-view-title">Do you offer refunds?</span>
+																					<span class="pcu-lib-view-desc">Yes, within 14 days.</span>
+																			</div>
+
+									<div class="pcu-lib-edit">
+										<input type="text" class="form-control pcu-lib-title"
+											value="Do you offer refunds?"
+											placeholder="FAQ name">
+																					<textarea class="form-control pcu-lib-desc"
+												placeholder="Answer">Yes, within 14 days.</textarea>
+																			</div>
+								</td>
 																<td class="pcu-lib-actions">
+									<i class="fas fa-pen pcu-lib-edit-btn" role="button" tabindex="0"
+										aria-label="Edit"></i>
 									<i class="fas fa-trash pcu-lib-delete" role="button" tabindex="0"
 										aria-label="Remove"></i>
 								</td>

@@ -35,34 +35,85 @@
         var allBox = lib.querySelector('.pcu-lib-all');
         var removeBtn = lib.querySelector('.pcu-lib-remove');
 
-        /** A blank row, ready to type into. */
+        /**
+         * Put a row back into view mode, showing what was saved.
+         *
+         * The view text is written with textContent — never innerHTML. The title
+         * is the seller's own typing, and the one place it must never be able to
+         * become markup is the page that shows it back to them.
+         */
+        function toView(tr) {
+            var title = tr.querySelector('.pcu-lib-title');
+            var vTitle = tr.querySelector('.pcu-lib-view-title');
+
+            if (vTitle && title) { vTitle.textContent = title.value; }
+
+            if (isExtras) {
+                var price = tr.querySelector('.pcu-lib-price-input');
+                var vPrice = tr.querySelector('.pcu-lib-view-price');
+                if (vPrice && price) {
+                    vPrice.textContent = (CFG.currency || '$') + price.value;
+                }
+            } else {
+                var desc = tr.querySelector('.pcu-lib-desc');
+                var vDesc = tr.querySelector('.pcu-lib-view-desc');
+                if (vDesc && desc) { vDesc.textContent = desc.value; }
+            }
+
+            tr.classList.remove('is-editing');
+        }
+
+        /**
+         * A blank row, ready to type into.
+         *
+         * Built with the same two states as a saved row (a view and an edit
+         * block) so that after it is saved it can simply flip to view like any
+         * other — rather than being a special case that stays a form for ever.
+         * It just starts in edit mode, because there is nothing to show yet.
+         */
         function blankRow() {
             var tr = document.createElement('tr');
+            tr.className = 'is-editing';
 
             var check = el('td', 'pcu-lib-check');
-            check.appendChild(el('input'));
-            check.firstChild.type = 'checkbox';
-            check.firstChild.className = 'pcu-lib-row-check';
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'pcu-lib-row-check';
+            check.appendChild(cb);
 
             var main = document.createElement('td');
+
+            var view = el('div', 'pcu-lib-view');
+            view.appendChild(el('span', 'pcu-lib-view-title'));
+            if (!isExtras) { view.appendChild(el('span', 'pcu-lib-view-desc')); }
+            main.appendChild(view);
+
+            var edit = el('div', 'pcu-lib-edit');
             var title = document.createElement('input');
             title.type = 'text';
             title.className = 'form-control pcu-lib-title';
             title.placeholder = isExtras ? 'Name of extra' : 'FAQ name';
-            main.appendChild(title);
+            edit.appendChild(title);
 
             if (!isExtras) {
                 var desc = document.createElement('textarea');
                 desc.className = 'form-control pcu-lib-desc';
                 desc.placeholder = 'Answer';
-                main.appendChild(desc);
+                edit.appendChild(desc);
             }
+            main.appendChild(edit);
 
             tr.appendChild(check);
             tr.appendChild(main);
 
             if (isExtras) {
                 var priceCell = el('td', 'pcu-lib-price');
+
+                var pView = el('div', 'pcu-lib-view');
+                pView.appendChild(el('span', 'pcu-lib-view-price'));
+                priceCell.appendChild(pView);
+
+                var pEdit = el('div', 'pcu-lib-edit');
                 var group = el('div', 'input-group');
                 var sym = el('span', 'input-group-text');
                 sym.textContent = CFG.currency || '$';
@@ -76,11 +127,14 @@
 
                 group.appendChild(sym);
                 group.appendChild(price);
-                priceCell.appendChild(group);
+                pEdit.appendChild(group);
+                priceCell.appendChild(pEdit);
+
                 tr.appendChild(priceCell);
             }
 
             var actions = el('td', 'pcu-lib-actions',
+                '<i class="fas fa-pen pcu-lib-edit-btn" role="button" tabindex="0" aria-label="Edit"></i>' +
                 '<i class="fas fa-trash pcu-lib-delete" role="button" tabindex="0" aria-label="Remove"></i>');
             tr.appendChild(actions);
 
@@ -139,12 +193,28 @@
             if (e.target.classList.contains('pcu-lib-row-check')) { syncRemoveButton(); }
         });
 
-        // Remove one row, or every ticked row.
+        // Remove one row, or edit one row.
         lib.addEventListener('click', function (e) {
             if (e.target.classList.contains('pcu-lib-delete')) {
                 var tr = e.target.closest('tr');
                 if (tr) { tr.parentNode.removeChild(tr); }
                 syncRemoveButton();
+                return;
+            }
+
+            // The pencil: turn this row into fields, or put it back if it is
+            // already open. Only this row — the rest stay as records.
+            if (e.target.classList.contains('pcu-lib-edit-btn')) {
+                var row = e.target.closest('tr');
+                if (!row) { return; }
+
+                if (row.classList.contains('is-editing')) {
+                    toView(row);
+                } else {
+                    row.classList.add('is-editing');
+                    var field = row.querySelector('.pcu-lib-title');
+                    if (field) { field.focus(); }
+                }
             }
         });
 
@@ -208,8 +278,14 @@
                     // Rows the server accepted now carry their stored ids, so a
                     // second save updates them instead of creating duplicates.
                     var stored = res.data.rows || [];
+
                     rows().forEach(function (tr, i) {
                         if (stored[i]) { tr.setAttribute('data-id', stored[i].id); }
+
+                        // Saved: it is a record now, not a form. This is what the
+                        // client asked for — after saving, nothing should still
+                        // look like a field waiting to be filled in.
+                        toView(tr);
                     });
                 })
                 .catch(function () {
