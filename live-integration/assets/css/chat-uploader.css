@@ -533,7 +533,7 @@
 
 .pcu-chat-play {
     position: absolute;
-    top: 32px;                      /* centred on the 64px image, not the caption */
+    top: 50%;                       /* the tile is the image now — no caption below it */
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
@@ -577,16 +577,10 @@
     text-transform: uppercase;
 }
 
-.pcu-chat-thumb .pcu-chat-caption {
-    display: block;
-    padding: 4px 6px;
-    font-size: 11px;
-    color: var(--pcu-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border-top: 1px solid var(--pcu-border);
-}
+/* The filename strip that used to sit under each tile is gone — the tooltip
+   carries the name, and it can show all of it instead of an ellipsis. The rule
+   is deleted rather than hidden: a `display: none` block left behind is one more
+   thing for the next person to wonder about. */
 
 /* --------------------------------------------------------------------------
    9. Responsive — the modal must not break on phones.

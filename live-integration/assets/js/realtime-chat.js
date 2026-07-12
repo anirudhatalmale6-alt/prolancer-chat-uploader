@@ -93,7 +93,9 @@
 					.appendTo($a);
 			}
 
-			$('<span/>', { 'class': 'pcu-chat-caption' }).text(a.name).appendTo($a);
+			// No filename strip — the tooltip carries the name. Must match the
+			// server markup in pcu_render_attachments(), or a message would look
+			// different live than it does after a reload.
 			$a.appendTo($wrap);
 		});
 

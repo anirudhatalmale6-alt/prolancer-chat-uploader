@@ -79,19 +79,16 @@
                             <a class="pcu-chat-thumb" href="fixtures/mockup-homepage.png" target="_blank" rel="noopener"
                                data-tip="Mockup, homepage v2.png&#10;PNG &middot; 12 KB" data-name="Mockup, homepage v2.png" data-kind="image" data-file="Mockup-homepage-v2.png">
                                 <img src="fixtures/mockup-homepage.png" alt="" width="84" height="64">
-                                <span class="pcu-chat-caption">mockup-homepage</span>
                             </a>
                             <a class="pcu-chat-thumb" href="fixtures/spec-sheet.pdf" target="_blank" rel="noopener"
                                data-tip="Spec sheet, final.pdf&#10;PDF &middot; 8 KB" data-name="Spec sheet, final.pdf" data-kind="file" data-file="Spec-sheet-final.pdf"
                                data-icon="assets/icons/pdf.png">
                                 <img class="pcu-chat-icon" src="assets/icons/pdf.png" alt="pdf" width="84" height="64">
-                                <span class="pcu-chat-caption">spec-sheet</span>
                             </a>
                             <a class="pcu-chat-thumb" href="fixtures/project-files.zip" target="_blank" rel="noopener"
                                data-tip="project-files.zip&#10;ZIP &middot; 2 KB" data-kind="file" data-file="project-files.zip"
                                data-icon="assets/icons/zip.png">
                                 <img class="pcu-chat-icon" src="assets/icons/zip.png" alt="zip" width="84" height="64">
-                                <span class="pcu-chat-caption">project-files</span>
                             </a>
                         </div>
                     </div>
@@ -116,12 +113,10 @@
                                 <span class="pcu-chat-play" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                                 </span>
-                                <span class="pcu-chat-caption">clip</span>
                             </a>
                             <a class="pcu-chat-thumb" href="fixtures/wireframe.png" target="_blank" rel="noopener"
                                data-tip="wireframe.png&#10;PNG &middot; 9 KB" data-kind="image" data-file="wireframe.png">
                                 <img src="fixtures/wireframe.png" alt="" width="84" height="64">
-                                <span class="pcu-chat-caption">wireframe</span>
                             </a>
                         </div>
                     </div>
@@ -260,11 +255,8 @@ window.PCU.on('pcu:uploaded', function (files) {
             ? '<img src="' + src + '" alt="">'
             : '<div class="pcu-chat-file">' + (f.name.split('.').pop() || 'file') + '</div>';
 
-        var cap = document.createElement('span');
-        cap.className = 'pcu-chat-caption';
-        cap.textContent = f.name;
-        a.appendChild(cap);
-
+        // No filename strip — the tooltip carries the name (matches the
+        // server markup in pcu_render_attachments()).
         wrap.appendChild(a);
     });
 

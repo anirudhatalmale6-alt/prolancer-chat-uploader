@@ -1093,7 +1093,8 @@ function pcu_render_attachments( $stored ) {
 				. '</span>';
 		}
 
-		printf( '<span class="pcu-chat-caption">%s</span>', esc_html( $name ) );
+		// No filename strip under the tile: the tooltip (data-tip) already carries
+		// the name, and it can show the whole thing rather than an ellipsis.
 		echo '</a>';
 	}
 
