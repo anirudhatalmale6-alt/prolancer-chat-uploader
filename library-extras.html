@@ -1,4 +1,6 @@
 <!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="theme/parent-style.css">
+<link rel="stylesheet" href="theme/dashboard.css">
 <link rel="stylesheet" href="assets/pcu-library.css">
 <style>body{font-family:system-ui;margin:0;background:#f7f8fb}
 .white-padding{background:#fff;padding:24px;margin:16px;border-radius:12px}
@@ -18,16 +20,17 @@
 			Build your list of extras once. When you post a service you can tick the ones you want, instead of typing them again.		</p>
 
 		<div class="pcu-lib" data-library="extras">
-			<table class="pcu-lib-table">
+						<div class="table-responsive">
+			<table class="prolancer-table">
 				<thead>
 					<tr>
-						<th class="pcu-lib-check">
+						<th scope="col" class="pcu-lib-check">
 														<input type="checkbox" class="pcu-lib-all"
 								aria-label="Select all">
 						</th>
-						<th>Name of extra</th>
-													<th class="pcu-lib-price">Price</th>
-												<th class="pcu-lib-actions"><span class="screen-reader-text">Remove</span></th>
+						<th scope="col">Name of extra</th>
+													<th scope="col" class="pcu-lib-price">Price</th>
+												<th scope="col" class="pcu-lib-actions">Action</th>
 					</tr>
 				</thead>
 				<tbody class="pcu-lib-rows">
@@ -81,6 +84,7 @@
 							</tr>
 															</tbody>
 			</table>
+			</div>
 
 			<div class="pcu-lib-foot">
 				<a href="#" class="pcu-lib-add prolancer-btn">

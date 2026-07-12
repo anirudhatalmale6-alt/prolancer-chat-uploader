@@ -12,62 +12,45 @@
     font-size: 14px;
 }
 
-.pcu-lib-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+/* The table itself is the SITE's table (.table-responsive > .prolancer-table),
+   so it already has its borders, spacing, header style and responsive wrapper —
+   and a future restyle of the dashboard tables restyles this one with them.
+   Nothing here re-states any of that. Below is only what the site's table has no
+   opinion about: the checkbox column, the price column, and the shading of a
+   selected row. */
 
-.pcu-lib-table th,
-.pcu-lib-table td {
-    padding: 12px;
-    border-bottom: 1px solid #eceef3;
-    vertical-align: top;
-    text-align: left;
-}
-
-.pcu-lib-table thead th {
-    font-size: 13px;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    border-bottom: 2px solid #eceef3;
-}
-
-/* The checkbox column: narrow, and the box centred in it. */
-.pcu-lib-check {
+.pcu-lib .pcu-lib-check {
     width: 48px;
     text-align: center;
 }
 
-.pcu-lib-check input[type="checkbox"] {
+.pcu-lib .pcu-lib-check input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    margin-top: 10px;
     cursor: pointer;
     accent-color: #6787fe;      /* the site's blue */
 }
 
-.pcu-lib-table thead .pcu-lib-check input[type="checkbox"] {
-    margin-top: 0;
-}
-
-.pcu-lib-price {
+.pcu-lib .pcu-lib-price {
     width: 200px;
 }
 
-.pcu-lib-actions {
-    width: 60px;
+.pcu-lib .pcu-lib-actions {
+    width: 90px;
     text-align: center;
 }
 
-.pcu-lib-table textarea {
+.pcu-lib .prolancer-table td {
+    vertical-align: top;
+}
+
+.pcu-lib .prolancer-table textarea {
     min-height: 70px;
     margin-top: 8px;
 }
 
 /* A ticked row is shaded, so what is selected is obvious at a glance. */
-.pcu-lib-table tbody tr:has(.pcu-lib-row-check:checked) {
+.pcu-lib .prolancer-table tbody tr:has(.pcu-lib-row-check:checked) {
     background: #f4f6ff;
 }
 
@@ -219,45 +202,14 @@
    Responsive — the table has to survive a phone
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) {
-    .pcu-lib-table,
-    .pcu-lib-table tbody,
-    .pcu-lib-table tr,
-    .pcu-lib-table td {
-        display: block;
-        width: 100%;
-    }
+    /* The site's own `.table-responsive` wrapper already gives the table a
+       horizontal scroll on a narrow screen, which is how every other dashboard
+       list behaves — so this does NOT re-lay-out the table into cards. Doing
+       that would make the one table on the site that looks different on a phone,
+       which is the opposite of what was asked for.
 
-    .pcu-lib-table thead {
-        display: none;          /* the labels move into the rows */
-    }
-
-    .pcu-lib-table tr {
-        position: relative;
-        padding: 12px 12px 12px 44px;
-        border-bottom: 1px solid #eceef3;
-    }
-
-    .pcu-lib-table td {
-        border: 0;
-        padding: 6px 0;
-    }
-
-    .pcu-lib-check {
-        position: absolute;
-        top: 16px;
-        left: 8px;
-        width: auto;
-        padding: 0;
-    }
-
-    .pcu-lib-check input[type="checkbox"] {
-        margin-top: 0;
-    }
-
-    .pcu-lib-actions {
-        text-align: left;
-    }
-
+       Only the footer stacks, because two full-width buttons side by side on a
+       360px screen is genuinely unusable. */
     .pcu-lib-foot {
         flex-direction: column;
         align-items: stretch;

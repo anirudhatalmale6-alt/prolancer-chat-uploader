@@ -301,19 +301,33 @@ function pcu_library_render( $which ) {
 		</p>
 
 		<div class="pcu-lib" data-library="<?php echo esc_attr( $which ); ?>">
-			<table class="pcu-lib-table">
+			<?php
+			/*
+			 * `table-responsive` > `prolancer-table` — the SAME wrapper and class
+			 * the Services, Projects and every other dashboard list already uses.
+			 *
+			 * Not a lookalike of its own: the client's rule is that a restyle
+			 * should hit every table at once. A private `.pcu-lib-table` would
+			 * have to be found and restyled separately, and would drift the day
+			 * someone forgot. The pcu-* classes below are only for the parts the
+			 * site's table has no opinion about — the checkbox column and the
+			 * price column widths.
+			 */
+			?>
+			<div class="table-responsive">
+			<table class="prolancer-table">
 				<thead>
 					<tr>
-						<th class="pcu-lib-check">
+						<th scope="col" class="pcu-lib-check">
 							<?php // Select-all. Its own label, so a screen reader says what it does. ?>
 							<input type="checkbox" class="pcu-lib-all"
 								aria-label="<?php esc_attr_e( 'Select all', 'prolancer' ); ?>">
 						</th>
-						<th><?php echo $is_extras ? esc_html__( 'Name of extra', 'prolancer' ) : esc_html__( 'FAQ name', 'prolancer' ); ?></th>
+						<th scope="col"><?php echo $is_extras ? esc_html__( 'Name of extra', 'prolancer' ) : esc_html__( 'FAQ name', 'prolancer' ); ?></th>
 						<?php if ( $is_extras ) : ?>
-							<th class="pcu-lib-price"><?php esc_html_e( 'Price', 'prolancer' ); ?></th>
+							<th scope="col" class="pcu-lib-price"><?php esc_html_e( 'Price', 'prolancer' ); ?></th>
 						<?php endif; ?>
-						<th class="pcu-lib-actions"><span class="screen-reader-text"><?php esc_html_e( 'Remove', 'prolancer' ); ?></span></th>
+						<th scope="col" class="pcu-lib-actions"><?php esc_html_e( 'Action', 'prolancer' ); ?></th>
 					</tr>
 				</thead>
 				<tbody class="pcu-lib-rows">
@@ -359,6 +373,7 @@ function pcu_library_render( $which ) {
 					<?php endif; ?>
 				</tbody>
 			</table>
+			</div>
 
 			<div class="pcu-lib-foot">
 				<a href="#" class="pcu-lib-add prolancer-btn">
