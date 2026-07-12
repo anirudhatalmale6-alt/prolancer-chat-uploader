@@ -195,15 +195,17 @@ function prolancer_realtime_attachments( $stored ) {
 		$kind     = function_exists( 'pcu_attachment_kind' ) ? pcu_attachment_kind( $id ) : 'file';
 		$is_video = ( 'video' === $kind && function_exists( 'pcu_video_poster_url' ) );
 
-		// Full size sits behind the video in the viewer; the square crop is the
-		// tile in the chat. Swapping them puts a 150x150 crop on a full screen.
+		// Full size sits behind the video in the viewer; a small UNCROPPED copy is
+		// the tile in the chat (pcu_tile_size — not 'thumbnail', which is a hard
+		// 150x150 crop). Swapping them puts a thumbnail on a full screen.
+		$size   = function_exists( 'pcu_tile_size' ) ? pcu_tile_size() : 'medium';
 		$poster = $is_video ? pcu_video_poster_url( $id, 'full' ) : '';
-		$tile   = $is_video && $poster ? pcu_video_poster_url( $id, 'thumbnail' ) : '';
+		$tile   = $is_video && $poster ? pcu_video_poster_url( $id, $size ) : '';
 
 		// A video shows the frame we grabbed from it, exactly as it does after a
 		// reload — so a clip that arrives live is not a bare "MP4" tile until the
 		// page is refreshed.
-		$thumb = $is_image ? wp_get_attachment_image_url( $id, 'thumbnail' ) : $tile;
+		$thumb = $is_image ? wp_get_attachment_image_url( $id, $size ) : $tile;
 
 		if ( is_ssl() ) {
 			// Keep links on https so they don't trigger mixed-content blocking.

@@ -650,18 +650,43 @@ function pcu_ffmpeg() {
 }
 
 /**
+ * The size the chat tile asks WordPress for.
+ *
+ * NOT 'thumbnail'. WordPress's 'thumbnail' is a 150x150 hard CROP — it does not
+ * scale a photo down, it cuts a square out of the middle and throws the rest
+ * away. A wide product shot loses its ends before any CSS gets a say, which is
+ * why the tile showed a cropped image while the pre-send preview (which reads
+ * the original file) showed all of it.
+ *
+ * 'medium' is bounded, not cropped: the whole picture, longest side 300px. The
+ * tile is 84x64, so that is more than enough resolution on a 2x screen, and
+ * object-fit: contain then letterboxes it into the tile intact.
+ */
+function pcu_tile_size() {
+	/**
+	 * Filter the image size used for chat attachment tiles.
+	 *
+	 * @param string $size A registered image size. Must NOT be a cropped one.
+	 */
+	return (string) apply_filters( 'pcu_tile_size', 'medium' );
+}
+
+/**
  * The poster for a video attachment, generating it on first use.
  *
- * Two sizes matter and they are NOT interchangeable: WordPress's 'thumbnail' is
- * a 150x150 square CROP, which is right for the 84x64 tile in the chat and very
- * wrong behind a full-screen video — a 9:16 phone clip would show a
- * centre-cropped square stretched across the stage. The viewer asks for 'full'.
+ * Two sizes matter and they are NOT interchangeable: the tile wants a small,
+ * uncropped copy (pcu_tile_size), while behind a full-screen video anything
+ * smaller than 'full' would show a 9:16 phone clip as a stretched thumbnail.
  *
  * @param int    $video_id Attachment ID of the video.
  * @param string $size     Any registered image size.
  * @return string Poster image URL, or '' if one could not be made.
  */
-function pcu_video_poster_url( $video_id, $size = 'thumbnail' ) {
+function pcu_video_poster_url( $video_id, $size = '' ) {
+	if ( '' === $size ) {
+		$size = pcu_tile_size();
+	}
+
 	$poster_id = (int) get_post_thumbnail_id( $video_id );
 
 	if ( ! $poster_id ) {
@@ -1013,15 +1038,15 @@ function pcu_render_attachments( $stored ) {
 		$name   = get_the_title( $id );
 		$kind   = pcu_attachment_kind( $id );
 		$ext    = strtoupper( pathinfo( $url, PATHINFO_EXTENSION ) );
-		// Full size behind the video in the viewer; the square crop on the tile.
+		// Full size behind the video in the viewer; the small uncropped copy on the tile.
 		$poster = 'video' === $kind ? pcu_video_poster_url( $id, 'full' ) : '';
 
 		// A video shows a frame from itself; an image shows itself; anything
 		// else has no preview and shows its type.
 		if ( 'image' === $kind ) {
-			$thumb = wp_get_attachment_image_url( $id, 'thumbnail' );
+			$thumb = wp_get_attachment_image_url( $id, pcu_tile_size() );
 		} elseif ( $poster ) {
-			$thumb = pcu_video_poster_url( $id, 'thumbnail' );   // already generated
+			$thumb = pcu_video_poster_url( $id, pcu_tile_size() );   // already generated
 		} else {
 			$thumb = '';
 		}

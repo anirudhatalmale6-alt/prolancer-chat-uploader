@@ -341,10 +341,12 @@
     overflow: hidden;
 }
 
+/* Same `contain` as the sent thumbnail, so what you see before sending is what
+   lands in the chat. */
 .pcu-file-thumb img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
 
@@ -551,10 +553,15 @@
     margin-left: 1px;               /* optical centring — a triangle is not a disc */
 }
 
+/* `contain`, not `cover`: the whole picture, exactly as the preview shows it
+   before sending. `cover` fills the tile by cropping — on a tall or wide photo
+   that throws away the parts that tell you what the file is. The tile keeps its
+   84x64 footprint either way, so nothing around it moves. */
 .pcu-chat-thumb img {
     width: 84px;
     height: 64px;
-    object-fit: cover;
+    object-fit: contain;
+    background: #fff;
     display: block;
 }
 
@@ -778,7 +785,8 @@
     border-radius: 0;          /* square — no round borders */
     width: 84px;
     height: 64px;
-    object-fit: cover;
+    object-fit: contain;       /* the whole picture — see .pcu-chat-thumb img */
+    background: #fff;
     margin: 0;
     display: block;
 }
