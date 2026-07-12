@@ -165,6 +165,160 @@ function pcu_avatar_data( $args, $id_or_email ) {
 add_filter( 'get_avatar_data', 'pcu_avatar_data', 10, 2 );
 
 /**
+ * The circular profile-picture uploader.
+ *
+ * Replaces the plugin's big "Choose a Profile Picture" dropzone with the round
+ * camera-icon control from the reference. It renders the CURRENT picture inline,
+ * so the control is complete before the page paints — nothing pops in or shifts
+ * on load. The camera icon is a translucent overlay that stays on top of the
+ * photo, so a picture can always be changed.
+ *
+ * The hidden <input name="{$meta_key}"> is what the profile form already reads
+ * to save the picture; the cropper writes the new attachment id into it, so the
+ * existing save path is untouched.
+ *
+ * @param int    $post_id  Seller/buyer profile post id (the form's data-post-id).
+ * @param string $meta_key seller_profile_attachment | buyer_profile_attachment.
+ */
+function pcu_avatar_uploader( $post_id, $meta_key ) {
+	$post_id = (int) $post_id;
+
+	$url = '';
+	$id  = 0;
+
+	$saved = get_post_meta( $post_id, $meta_key, true );
+
+	if ( $saved ) {
+		$id  = function_exists( 'prolancer_get_image_id' ) ? (int) prolancer_get_image_id( $saved ) : 0;
+		$id  = $id ? $id : attachment_url_to_postid( $saved );
+		$url = $id ? wp_get_attachment_image_url( $id, 'thumbnail' ) : $saved;
+	}
+
+	$camera = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" '
+		. 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+		. '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>'
+		. '<circle cx="12" cy="13" r="4"/></svg>';
+
+	?>
+	<div class="pcu-avatar-upload<?php echo $url ? ' has-image' : ''; ?>"
+		data-post-id="<?php echo esc_attr( $post_id ); ?>"
+		data-name="<?php echo esc_attr( $meta_key ); ?>"
+		data-nonce="<?php echo esc_attr( wp_create_nonce( 'upload_file_nonce' ) ); ?>">
+
+		<button type="button" class="pcu-avatar-ring" aria-label="<?php esc_attr_e( 'Change profile picture', 'prolancer' ); ?>">
+			<img class="pcu-avatar-photo" src="<?php echo esc_url( $url ); ?>" alt=""
+				<?php echo $url ? '' : 'hidden'; ?>>
+			<span class="pcu-avatar-overlay"><?php echo $camera; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG ?></span>
+			<span class="pcu-avatar-spin" hidden></span>
+		</button>
+
+		<!-- The plugin's file input carried the nonce/post-id; ours carries them on
+		     the wrapper instead. accept: images only. -->
+		<input type="file" class="pcu-avatar-file" accept="image/png,image/jpeg,image/webp" hidden>
+
+		<!-- What the profile form saves. Seeded with the current id so saving
+		     without changing the picture keeps it. -->
+		<input type="hidden" name="<?php echo esc_attr( $meta_key ); ?>" class="pcu-avatar-id"
+			value="<?php echo esc_attr( $id ); ?>">
+	</div>
+	<?php
+}
+
+/**
+ * The cropper modal + its markup, printed once in the dashboard footer.
+ *
+ * One modal for the page, reused — not one per uploader. Hidden until a file is
+ * chosen. Closes only by its own Close button (the JS does not bind a backdrop
+ * click), per the brief.
+ */
+function pcu_avatar_modal() {
+	if ( ! pcu_is_profile_screen() ) {
+		return;
+	}
+	?>
+	<div class="pcu-crop-modal" hidden>
+		<div class="pcu-crop-dialog" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Crop your profile picture', 'prolancer' ); ?>">
+			<div class="pcu-crop-head">
+				<h3><?php esc_html_e( 'Crop your profile picture', 'prolancer' ); ?></h3>
+			</div>
+			<div class="pcu-crop-body">
+				<img class="pcu-crop-image" alt="">
+			</div>
+			<div class="pcu-crop-foot">
+				<button type="button" class="pcu-crop-close prolancer-btn"><?php esc_html_e( 'Close', 'prolancer' ); ?></button>
+				<button type="button" class="pcu-crop-save prolancer-btn"><?php esc_html_e( 'Upload', 'prolancer' ); ?></button>
+			</div>
+		</div>
+	</div>
+	<?php
+}
+add_action( 'wp_footer', 'pcu_avatar_modal' );
+
+/**
+ * Is this the profile-edit screen? (?fed=profile)
+ */
+function pcu_is_profile_screen() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only check.
+	$fed = isset( $_GET['fed'] ) ? sanitize_key( wp_unslash( $_GET['fed'] ) ) : '';
+
+	return 'profile' === $fed;
+}
+
+/**
+ * Cropper library + our glue, on the profile screen only.
+ */
+function pcu_avatar_enqueue() {
+	if ( ! pcu_is_profile_screen() ) {
+		return;
+	}
+
+	$dir = get_stylesheet_directory();
+	$uri = get_stylesheet_directory_uri();
+
+	$ver = function_exists( 'pcu_asset_version' ) ? 'pcu_asset_version' : 'filemtime';
+
+	wp_enqueue_style(
+		'pcu-cropper',
+		$uri . '/assets/vendor/cropper.min.css',
+		array(),
+		call_user_func( $ver, $dir . '/assets/vendor/cropper.min.css' )
+	);
+
+	wp_enqueue_style(
+		'pcu-avatar',
+		$uri . '/assets/css/pcu-avatar.css',
+		array( 'pcu-cropper' ),
+		call_user_func( $ver, $dir . '/assets/css/pcu-avatar.css' )
+	);
+
+	wp_enqueue_script(
+		'pcu-cropper',
+		$uri . '/assets/vendor/cropper.min.js',
+		array(),
+		call_user_func( $ver, $dir . '/assets/vendor/cropper.min.js' ),
+		true
+	);
+
+	wp_enqueue_script(
+		'pcu-avatar',
+		$uri . '/assets/js/pcu-avatar.js',
+		array( 'pcu-cropper' ),
+		call_user_func( $ver, $dir . '/assets/js/pcu-avatar.js' ),
+		true
+	);
+
+	wp_localize_script(
+		'pcu-avatar',
+		'PCU_AVATAR',
+		array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'action'  => 'prolancer_ajax_upload_file',
+		)
+	);
+}
+add_action( 'wp_enqueue_scripts', 'pcu_avatar_enqueue' );
+
+/**
  * Whose avatar is this? get_avatar() accepts five different things.
  *
  * @param mixed $id_or_email User ID, email, WP_User, WP_Post or WP_Comment.

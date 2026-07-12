@@ -1,0 +1,195 @@
+/**
+ * Profile picture uploader + cropper modal — ProLancer child theme.
+ *
+ * Loaded on the profile screen only. The round control replaces the plugin's
+ * "Choose a Profile Picture" dropzone; the modal is the Cropper.js dialog.
+ */
+
+/* --------------------------------------------------------------------------
+   The round camera control
+   --------------------------------------------------------------------------
+   Fixed 120px circle, so it takes the same room whether or not a picture is
+   set — nothing reflows when one loads or is chosen.
+   -------------------------------------------------------------------------- */
+.pcu-avatar-upload {
+    display: inline-block;
+    margin-top: 8px;
+}
+
+.pcu-avatar-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    padding: 0;
+    border: 2px dashed #c7ccd8;
+    border-radius: 50%;
+    background: #f5f7fb;
+    cursor: pointer;                /* a hand, not an arrow, on the control */
+    overflow: hidden;
+    display: block;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+
+.pcu-avatar-upload.has-image .pcu-avatar-ring {
+    border-style: solid;
+    border-color: #e3e7ef;
+}
+
+.pcu-avatar-ring:hover {
+    border-color: #5b6bf5;
+    background: #eef1ff;
+}
+
+.pcu-avatar-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;              /* fill the circle; the crop already made it square */
+    display: block;
+}
+
+/* The camera icon sits ON TOP of the picture and is see-through, so a set
+   picture still reads as "click to change". With no picture it is the only
+   thing in the circle. */
+.pcu-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a93a6;
+    pointer-events: none;
+}
+
+.pcu-avatar-upload.has-image .pcu-avatar-overlay {
+    color: #fff;
+    background: rgb(0 0 0 / 28%);   /* a wash, so the icon shows on any photo */
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.pcu-avatar-upload.has-image .pcu-avatar-ring:hover .pcu-avatar-overlay,
+.pcu-avatar-upload.has-image .pcu-avatar-ring:focus-visible .pcu-avatar-overlay {
+    opacity: 1;                     /* reveal the camera on hover of a set picture */
+}
+
+/* Spinner — the SAME site loader, over the control, while the upload runs. */
+.pcu-avatar-spin {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(255 255 255 / 70%);
+}
+
+.pcu-avatar-spin::after {
+    content: '';
+    width: 34px;
+    height: 34px;
+    border: 3px solid #c7ccd8;
+    border-top-color: #5b6bf5;
+    border-radius: 50%;
+    animation: pcu-avatar-rot .8s linear infinite;
+}
+
+@keyframes pcu-avatar-rot {
+    to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   The cropper modal
+   -------------------------------------------------------------------------- */
+.pcu-crop-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgb(17 20 28 / 55%);
+}
+
+.pcu-crop-modal[hidden] {
+    display: none;
+}
+
+body.pcu-crop-open {
+    overflow: hidden;               /* don't scroll the page behind the modal */
+}
+
+.pcu-crop-dialog {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 30%);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+.pcu-crop-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid #eceef3;
+}
+
+.pcu-crop-head h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1d2433;
+}
+
+.pcu-crop-body {
+    padding: 18px 22px;
+    background: #f5f7fb;
+    overflow: auto;
+}
+
+/* Cropper needs a bounded, block image to attach to. */
+.pcu-crop-image {
+    display: block;
+    max-width: 100%;
+}
+
+/* Keep the working area a sensible height on tall screens. */
+.pcu-crop-body .cropper-container {
+    max-height: 60vh;
+}
+
+.pcu-crop-foot {
+    display: flex;
+    justify-content: space-between;  /* Close left, Upload right — per the brief */
+    gap: 12px;
+    padding: 16px 22px;
+    border-top: 1px solid #eceef3;
+}
+
+/* The theme styles .prolancer-btn; Close is the quieter of the two. */
+.pcu-crop-foot .pcu-crop-close {
+    background: #eef0f3;
+    color: #3a4252;
+}
+
+.pcu-crop-foot button[disabled] {
+    opacity: .6;
+    cursor: default;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+    .pcu-avatar-ring {
+        width: 96px;
+        height: 96px;
+    }
+
+    .pcu-crop-dialog {
+        max-width: 100%;
+    }
+}

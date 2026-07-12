@@ -48,6 +48,14 @@ TEXT_ONLY = [
     'message/message.php',
 ]
 
+# Profile edit pages. Their profile-PICTURE dropzone is swapped for the round
+# camera control (pcu_avatar_uploader). The cover-image dropzone is left as it
+# is. Handled on its own below, not through the chat edits above.
+PROFILE = {
+    'seller/profile.php': ('$seller_id', 'seller_profile_attachment'),
+    'buyer/profile.php':  ('$buyer_id',  'buyer_profile_attachment'),
+}
+
 # The plugin's single-attachment download block, in all its whitespace variants.
 ATTACH_BLOCK = re.compile(
     r'<\?php\s+if\s*\(\s*\$message->attachment_id\s*\)\s*\{\s*\?>.*?<\?php\s*\}\s*\?>',
@@ -163,6 +171,47 @@ for rel in COMPOSER + RENDER_ONLY + TEXT_ONLY:
     open(dst, 'w', encoding='utf-8').write(code)
 
     print('%-42s attachments:%d  composer:%d  messages:%d' % (rel, n_attach, n_input, n_echo))
+
+# --- profile pages: swap the profile-picture dropzone for the round control ---
+
+# The whole <div class="col-md-12"> that wraps the profile-picture dropzone. It
+# is identified by *_profile_attachment (NOT *_cover_attachment, which is the
+# next block). Attributes span lines and hold PHP, so match the wrapper by its
+# balanced-ish shape: from the col-md-12 opening to the close of the dropzone.
+# The profile block has nested <div class="progress"><div class="progress-bar">,
+# so a plain `.*?</div></div>` stops inside it. Anchor the end instead: the block
+# closes (dropzone + col-md-12) right before the NEXT col-md-12 (the cover image).
+# The lookahead is zero-width, so the following block is left in place.
+PROFILE_BLOCK = re.compile(
+    r'<div class="col-md-12">\s*<div class="dropzone.*?profile_attachment'
+    r'.*?</div>\s*</div>\s*(?=<div class="col-md-12")',
+    re.DOTALL,
+)
+
+for rel, (id_var, meta_key) in PROFILE.items():
+    src = os.path.join(SRC, rel)
+    if not os.path.exists(src):
+        fails.append('%s: MISSING' % rel)
+        continue
+
+    code = open(src, encoding='utf-8').read()
+
+    replacement = "<div class=\"col-md-12\">\n\t\t\t\t\t\t<?php pcu_avatar_uploader( %s, '%s' ); ?>\n\t\t\t\t\t</div>" % (id_var, meta_key)
+    code, n = PROFILE_BLOCK.subn(replacement, code, count=1)
+
+    if n == 0:
+        fails.append('%s: profile-picture dropzone NOT FOUND' % rel)
+    if '_profile_attachment' in code and 'pcu_avatar_uploader' not in code:
+        fails.append('%s: replacement did not take' % rel)
+    # The cover-image dropzone must survive untouched.
+    if '_cover_attachment' not in code:
+        fails.append('%s: cover dropzone was wrongly removed' % rel)
+
+    dst = os.path.join(OUT, rel)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    open(dst, 'w', encoding='utf-8').write(code)
+
+    print('%-42s profile-uploader:%d' % (rel, n))
 
 if fails:
     print('\nFAILED:')

@@ -1,0 +1,65 @@
+<!doctype html>
+<!--
+  Drives the real pcu-avatar.js + Cropper.js against markup shaped exactly like
+  pcu_avatar_uploader() / pcu_avatar_modal(). The upload endpoint is stubbed.
+  Used to verify pick -> crop (1:1) -> upload -> shows immediately, and that the
+  modal closes only by its button.
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="assets/vendor/cropper.min.css">
+  <link rel="stylesheet" href="assets/pcu-avatar.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 40px; }
+    .prolancer-btn { display:inline-block; padding:10px 22px; background:#5b6bf5; color:#fff; border:0; border-radius:40px; cursor:pointer; }
+    .feds-user-profile img { width:120px; height:120px; border-radius:50%; object-fit:cover; }
+  </style>
+</head>
+<body>
+  <div class="feds-user-profile"><img src="fixtures/mockup-homepage.png" alt="sidebar avatar"></div>
+
+  <h3>Profile picture</h3>
+
+  <!-- pcu_avatar_uploader( 42, 'seller_profile_attachment' ) with no current pic -->
+  <div class="pcu-avatar-upload" data-post-id="42" data-name="seller_profile_attachment" data-nonce="testnonce">
+    <button type="button" class="pcu-avatar-ring" aria-label="Change profile picture">
+      <img class="pcu-avatar-photo" src="" alt="" hidden>
+      <span class="pcu-avatar-overlay">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+        </svg>
+      </span>
+      <span class="pcu-avatar-spin" hidden></span>
+    </button>
+    <input type="file" class="pcu-avatar-file" accept="image/png,image/jpeg,image/webp" hidden>
+    <input type="hidden" name="seller_profile_attachment" class="pcu-avatar-id" value="">
+  </div>
+
+  <!-- pcu_avatar_modal() -->
+  <div class="pcu-crop-modal" hidden>
+    <div class="pcu-crop-dialog" role="dialog" aria-modal="true" aria-label="Crop your profile picture">
+      <div class="pcu-crop-head"><h3>Crop your profile picture</h3></div>
+      <div class="pcu-crop-body"><img class="pcu-crop-image" alt=""></div>
+      <div class="pcu-crop-foot">
+        <button type="button" class="pcu-crop-close prolancer-btn">Close</button>
+        <button type="button" class="pcu-crop-save prolancer-btn">Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.PCU_AVATAR = { ajaxUrl: '/upload-stub', action: 'prolancer_ajax_upload_file' };
+    // Stub the endpoint: pretend the crop uploaded and became attachment #99.
+    window.__uploads = [];
+    window.fetch = function (url, opts) {
+      window.__uploads.push(opts && opts.body);
+      return Promise.resolve({ json: function () {
+        return Promise.resolve({ success: true, data: { id: 99, type: 'image/png' } });
+      }});
+    };
+  </script>
+  <script src="assets/vendor/cropper.min.js"></script>
+  <script src="assets/pcu-avatar.js"></script>
+</body>
+</html>
