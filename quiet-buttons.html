@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- All four "quiet" buttons, against the REAL theme CSS *and* the site's inline
+     brand rule for .prolancer-btn — which is what beat them. -->
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="theme/parent-style.css">
+<link rel="stylesheet" href="theme/dashboard.css">
+<link rel="stylesheet" href="assets/chat-uploader.css">
+<link rel="stylesheet" href="assets/pcu-avatar.css">
+<link rel="stylesheet" href="assets/pcu-library.css">
+<link rel="stylesheet" href="assets/pcu-wizard.css">
+<style>
+  /* The site prints this INLINE in the head — after every enqueued sheet.
+     This is the rule that turned the quiet buttons blue. */
+  .prolancer-btn{background:#6787FE;}
+  body{font-family:system-ui;background:#fff;padding:30px}
+  .pair{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+  .lbl{width:200px;color:#6b7280;font-size:13px}
+</style>
+</head><body>
+  <div class="pair"><span class="lbl">Attach modal</span>
+    <button class="pcu-btn-close prolancer-btn">Close</button>
+    <button class="pcu-btn-upload prolancer-btn">Upload</button></div>
+  <div class="pair"><span class="lbl">Cropper modal</span>
+    <button class="pcu-crop-close prolancer-btn">Close</button>
+    <button class="pcu-crop-save prolancer-btn">Upload</button></div>
+  <div class="pcu-crop-foot" style="display:none"></div>
+  <div class="pair"><span class="lbl">Library</span>
+    <button class="pcu-lib-remove prolancer-btn">Remove selected</button>
+    <button class="pcu-lib-save prolancer-btn">Save</button></div>
+  <div class="pair"><span class="lbl">Wizard</span>
+    <button class="pcu-wiz-prev prolancer-btn">Previous</button>
+    <button class="pcu-wiz-next prolancer-btn">Next</button></div>
+</body></html>

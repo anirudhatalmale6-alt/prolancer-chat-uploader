@@ -159,12 +159,20 @@
 }
 
 /* "Remove selected" is the quiet one; Save is the site's button. */
-.pcu-lib-remove {
+/* .prolancer-btn.pcu-… — TWO classes, on purpose.
+
+   The site paints `.prolancer-btn` with its brand blue from CSS printed inline
+   in the <head>, which therefore lands AFTER any enqueued stylesheet. A
+   single-class rule of ours (0,1,0) only TIES with it, and on a tie the later
+   one wins — so the quiet button came out blue, exactly like the loud one next
+   to it. Qualifying with .prolancer-btn makes it (0,2,0), which wins on
+   specificity and no longer depends on load order. */
+.prolancer-btn.pcu-lib-remove {
     background: #eef0f3;
     color: #3a4252;
 }
 
-.pcu-lib-remove:disabled {
+.prolancer-btn.pcu-lib-remove:disabled {
     opacity: .5;
     cursor: default;
 }
