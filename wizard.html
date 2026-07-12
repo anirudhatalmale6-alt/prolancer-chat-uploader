@@ -1,0 +1,230 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="theme/parent-style.css">
+<link rel="stylesheet" href="theme/dashboard.css">
+<link rel="stylesheet" href="assets/pcu-service-form.css">
+<link rel="stylesheet" href="assets/pcu-wizard.css">
+<style>body{font-family:system-ui;background:#f7f8fb;margin:0}
+.white-padding{background:#fff;padding:24px;margin:16px;border-radius:12px}
+.row{display:flex;flex-wrap:wrap}
+.col-12{flex:0 0 100%;max-width:100%}
+.col-lg-3{flex:0 0 25%;max-width:25%}
+.col-lg-9{flex:0 0 75%;max-width:75%}
+.col-md-6{flex:0 0 50%;max-width:50%;padding:0 8px}
+.col-md-12{flex:0 0 100%;max-width:100%;padding:0 8px}
+.form-control,.form-select{width:100%;padding:9px 12px;border:1px solid #dfe3ec;border-radius:8px;box-sizing:border-box;margin-bottom:10px}
+.prolancer-btn{display:inline-block;padding:10px 22px;background:#6787FE;color:#fff;border:0;border-radius:40px;cursor:pointer;text-decoration:none}
+.mb-4{margin-bottom:16px}.mb-5{margin-bottom:24px}
+</style></head><body>
+
+<div class="white-padding mb-4">
+    <h2 class="mb-0">Create a Service</h2>
+</div>
+
+
+<!-- Rest of your code remains exactly the same -->
+<div class="white-padding">
+    <form id="create-service-form" enctype="multipart/form-data">
+        <div class="row">
+            	<div class="pcu-wizard-nav col-12 col-lg-3">
+		<ol class="pcu-steps">
+							<li class="pcu-step-item is-current"
+					data-goto="1">
+					<span class="pcu-step-num">1</span>
+					<span class="pcu-step-text">
+						<span class="pcu-step-title">About service</span>
+						<span class="pcu-step-hint">Title, category and description</span>
+					</span>
+				</li>
+							<li class="pcu-step-item"
+					data-goto="2">
+					<span class="pcu-step-num">2</span>
+					<span class="pcu-step-text">
+						<span class="pcu-step-title">Media</span>
+						<span class="pcu-step-hint">Your featured images</span>
+					</span>
+				</li>
+							<li class="pcu-step-item"
+					data-goto="3">
+					<span class="pcu-step-num">3</span>
+					<span class="pcu-step-text">
+						<span class="pcu-step-title">Pricing</span>
+						<span class="pcu-step-hint">Packages and extras</span>
+					</span>
+				</li>
+							<li class="pcu-step-item"
+					data-goto="4">
+					<span class="pcu-step-num">4</span>
+					<span class="pcu-step-text">
+						<span class="pcu-step-title">FAQ</span>
+						<span class="pcu-step-hint">Answer the usual questions</span>
+					</span>
+				</li>
+					</ol>
+	</div>
+	            <div class="pcu-step col-12 col-lg-9" data-step="1" data-title="About service">
+              <div class="row">
+            <div class="col-md-6 mb-4">
+                <input type="text" name='title' class="form-control" value="" placeholder="Service Title">
+            </div>
+            <div class="col-md-6 mb-4">
+                <select name="service_category" class="form-select">
+                    <option value="">Category</option>
+                    <option value="5">Graphic Designing</option>                </select>
+            </div>      
+            <div class="col-md-6 mb-4">
+                <select name="service_english_level" class="form-select">
+                    <option value="">English Level</option>
+                    <option value="5">Graphic Designing</option>                </select>
+            </div>
+            <div class="col-md-6 mb-4">
+                <select name="service_locations" class="form-select">
+                    <option value="">Locations</option>
+                    <option value="5">Graphic Designing</option>                </select>               
+            </div>
+            <div class="col-md-12 mb-5">
+                <label>Description</label>
+                <textarea name="description" cols="30" rows="10" class="form-control"></textarea>
+            </div>
+            </div>
+            </div>
+
+            <div class="pcu-step col-12 col-lg-9" data-step="2" data-title="Media" hidden>
+              <div class="row"><div class="col-md-12 mb-4">
+                <label>Featured Images</label>
+                <input id="upload-service-attachments" type="file" class="form-control" multiple accept="image/pdf/doc/docx/ppt/pptx*" data-service-id="0" data-nonce="nonce">
+                <input type="hidden" name="attachments" class="attachment-ids" value="">
+                <div class="append-images">
+                                    
+                </div>
+            </div>
+            
+            </div>
+            </div>
+
+            <div class="pcu-step col-12 col-lg-9" data-step="3" data-title="Pricing" hidden>
+              <div class="row"><!-- The packages section remains exactly as you had it -->
+            <div class="col-md-12 mb-4">
+                <h4 class="mb-4">Packages</h4>              
+                <div class="packages">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th scope="col"></th>
+                                                                            <th scope="col">Package 0</th>
+                                                                            <th scope="col">Package 1</th>
+                                                                            <th scope="col">Package 2</th>
+                                                                    </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Name</td>
+                                                                            <td><input type="text" name="package_name[]" placeholder="Name your package" value=""></td>
+                                                                            <td><input type="text" name="package_name[]" placeholder="Name your package" value=""></td>
+                                                                            <td><input type="text" name="package_name[]" placeholder="Name your package" value=""></td>
+                                                                    </tr>
+                                <tr>
+                                    <td>Description</td>
+                                                                            <td><textarea name="package_description[]" placeholder="Describe the details of your offering"></textarea></td>
+                                                                            <td><textarea name="package_description[]" placeholder="Describe the details of your offering"></textarea></td>
+                                                                            <td><textarea name="package_description[]" placeholder="Describe the details of your offering"></textarea></td>
+                                                                    </tr>
+                                <tr>
+                                    <td>Delivery Time</td>
+                                                                            <td>
+                                            <select name="package_delivery_time[]" class="form-select">
+                                                <option value="">Delivery Time</option>
+                                                                                            </select>
+                                        </td>
+                                                                            <td>
+                                            <select name="package_delivery_time[]" class="form-select">
+                                                <option value="">Delivery Time</option>
+                                                                                            </select>
+                                        </td>
+                                                                            <td>
+                                            <select name="package_delivery_time[]" class="form-select">
+                                                <option value="">Delivery Time</option>
+                                                                                            </select>
+                                        </td>
+                                                                    </tr>
+                                <tr>
+                                    <td>Revisions</td>
+                                                                            <td><input type="text" inputmode="decimal" data-num="1" name="package_revision[]" placeholder="3" value=""></td>
+                                                                            <td><input type="text" inputmode="decimal" data-num="1" name="package_revision[]" placeholder="3" value=""></td>
+                                                                            <td><input type="text" inputmode="decimal" data-num="1" name="package_revision[]" placeholder="3" value=""></td>
+                                                                    </tr>
+                                                                    <tr>
+                                        <td>Source File</td>
+                                                                                    <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" >
+                                                <input type="hidden" name="packagefeature_source_file[]" value="no">
+                                            </td>
+                                                                                    <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" >
+                                                <input type="hidden" name="packagefeature_source_file[]" value="no">
+                                            </td>
+                                                                                    <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" >
+                                                <input type="hidden" name="packagefeature_source_file[]" value="no">
+                                            </td>
+                                                                            </tr>
+                                                                    <tr>
+                                        <td>Social Media Kit</td>
+                                                                                    <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" >
+                                                <input type="hidden" name="packagefeature_social_media_kit[]" value="no">
+                                            </td>
+                                                                                    <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" >
+                                                <input type="hidden" name="packagefeature_social_media_kit[]" value="no">
+                                            </td>
+                                                                                    <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" >
+                                                <input type="hidden" name="packagefeature_social_media_kit[]" value="no">
+                                            </td>
+                                                                            </tr>
+                                                                <tr>
+                                    <td>Price</td>
+                                                                            <td><input type="text" inputmode="decimal" data-num="1" name="package_price[]" placeholder="$" value=""></td>
+                                                                            <td><input type="text" inputmode="decimal" data-num="1" name="package_price[]" placeholder="$" value=""></td>
+                                                                            <td><input type="text" inputmode="decimal" data-num="1" name="package_price[]" placeholder="$" value=""></td>
+                                                                    </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-12 mb-5">
+                <h4 class="mb-4">Add Additional Service</h4>                
+                <div class="additional-services sortable">
+                                    </div>
+                <a href="#" class="add-additional-service prolancer-btn" data-nonce="nonce"><i class="fal fa-plus"></i> Add Extra Service </a>
+            </div>
+            </div>
+            </div>
+
+            <div class="pcu-step col-12 col-lg-9" data-step="4" data-title="FAQ" hidden>
+              <div class="row"><div class="col-md-12 mb-5">
+                <h4 class="mb-4">FAQ</h4>               
+                <div class="faqs sortable">
+                            </div>
+            <a href="#" class="add-new-faq prolancer-btn"><i class="fal fa-plus"></i> Add New FAQ </a>
+            </div>          
+                        <div class="col-md-12">
+                <a href="#" id="create-service" class="prolancer-btn" data-service-id="0" data-nonce="nonce">Create service</a>
+            </div>
+        </div>
+            </div>
+</div>
+      	<div class="pcu-wizard-controls">
+		<button type="button" class="pcu-wiz-prev prolancer-btn" hidden>
+			Previous		</button>
+
+		<button type="button" class="pcu-wiz-next prolancer-btn">
+			Next		</button>
+	</div>
+	    </form>
+</div><script src="assets/pcu-service-form.js"></script>
+<script src="assets/pcu-wizard.js"></script>
+</body></html>

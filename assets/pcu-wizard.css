@@ -1,0 +1,190 @@
+/**
+ * Create Service — 4-step wizard.
+ *
+ * Vertical numbered stepper down the left, the step's fields to the right.
+ * The panes are hidden server-side (the `hidden` attribute), so nothing is
+ * painted and then taken away: there is no jump on load.
+ */
+
+/* The `hidden` attribute must win over the theme's display rules, or a hidden
+   step would still be laid out. */
+.pcu-step[hidden] {
+    display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   The stepper
+   -------------------------------------------------------------------------- */
+.pcu-wizard-nav {
+    margin-bottom: 24px;
+}
+
+.pcu-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+
+/* The line the numbers sit on. Behind them, and stopping at the last one so it
+   does not dangle past the end. */
+.pcu-steps::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 20px;
+    bottom: 40px;
+    width: 2px;
+    background: #e3e7ef;
+}
+
+.pcu-step-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 0 0 30px;
+    cursor: pointer;
+}
+
+.pcu-step-item:last-child {
+    padding-bottom: 0;
+}
+
+.pcu-step-num {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #e3e7ef;
+    color: #98a2b3;
+    font-weight: 700;
+    font-size: 15px;
+    transition: all .18s ease;
+}
+
+.pcu-step-text {
+    display: flex;
+    flex-direction: column;
+    padding-top: 3px;
+    min-width: 0;
+}
+
+.pcu-step-title {
+    font-weight: 600;
+    color: #98a2b3;
+    line-height: 1.3;
+    transition: color .18s ease;
+}
+
+.pcu-step-hint {
+    font-size: 12px;
+    color: #b6bdc9;
+    margin-top: 2px;
+}
+
+/* Where you are. */
+.pcu-step-item.is-current .pcu-step-num {
+    background: #6787fe;        /* the site's brand blue */
+    border-color: #6787fe;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgb(103 135 254 / 15%);
+}
+
+.pcu-step-item.is-current .pcu-step-title {
+    color: #1d2433;
+}
+
+/* Where you have been — this is what tells you how far through you are. */
+.pcu-step-item.is-done .pcu-step-num {
+    background: #eef1ff;
+    border-color: #6787fe;
+    color: #6787fe;
+}
+
+.pcu-step-item.is-done .pcu-step-title {
+    color: #3a4252;
+}
+
+.pcu-step-item:hover .pcu-step-title {
+    color: #1d2433;
+}
+
+/* --------------------------------------------------------------------------
+   Previous / Next
+   -------------------------------------------------------------------------- */
+.pcu-wizard-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+/* Previous is the quiet one, the same grey the modals use. */
+.pcu-wiz-prev {
+    background: #eef0f3;
+    color: #3a4252;
+}
+
+.pcu-wiz-prev[hidden],
+.pcu-wiz-next[hidden] {
+    display: none;
+}
+
+.pcu-wiz-error {
+    flex: 1 0 100%;
+    margin: 4px 0 0;
+    color: #e5252a;
+    font-size: 14px;
+}
+
+.pcu-wiz-error[hidden] {
+    display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Narrow screens
+   --------------------------------------------------------------------------
+   The stepper goes across the top instead of down the side, and drops its
+   hints — four descriptions stacked on a phone is more noise than help.
+   -------------------------------------------------------------------------- */
+@media (max-width: 991px) {
+    .pcu-steps {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .pcu-steps::before {
+        left: 20px;
+        right: 20px;
+        top: 19px;
+        bottom: auto;
+        width: auto;
+        height: 2px;
+    }
+
+    .pcu-step-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+        padding: 0;
+        flex: 1;
+    }
+
+    .pcu-step-hint {
+        display: none;
+    }
+
+    .pcu-step-title {
+        font-size: 12px;
+    }
+}

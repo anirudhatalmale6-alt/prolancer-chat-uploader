@@ -86,6 +86,11 @@ NUMERIC_FIELDS = [
     'seller/create-service.php',
 ]
 
+# Split Create Service into a 4-step wizard.
+WIZARD = [
+    'seller/create-service.php',
+]
+
 # The plugin's single-attachment download block, in all its whitespace variants.
 ATTACH_BLOCK = re.compile(
     r'<\?php\s+if\s*\(\s*\$message->attachment_id\s*\)\s*\{\s*\?>.*?<\?php\s*\}\s*\?>',
@@ -348,8 +353,92 @@ def profile_uploader(rel, code):
     return code, 'avatar-uploader:%d' % n
 
 
+# The four steps, in order. Each entry is (title, the marker the step STARTS at).
+# The markers are the opening line of the first column in that step — matched
+# exactly, so if a plugin update moves them the build fails loudly instead of
+# silently producing a wizard with the wrong fields in the wrong step.
+WIZARD_STEPS = [
+    ("About service", None),                       # from the top of the row
+    ("Media",         '<div class="col-md-12 mb-4">\n                <label><?php echo esc_html__(\'Featured Images\',\'prolancer\'); ?></label>'),
+    ("Pricing",       '<!-- The packages section remains exactly as you had it -->'),
+    ("FAQ",           '<div class="col-md-12 mb-5">\n                <h4 class="mb-4"><?php echo esc_html__( "FAQ", \'prolancer\' ); ?></h4>'),
+]
+
+
+def wizard(rel, code):
+    """Group the form's columns into four steps.
+
+    Done in the MARKUP, not at runtime. Restructuring the form with JS after load
+    would show the whole thing and then collapse it -- the page would visibly
+    jump, which is the client's rule 2 ("no shaking or shifting elements on
+    load"). Built server-side, the wizard is correct before the first paint.
+
+    Each step is a full-width column wrapping its own row, so the Bootstrap grid
+    stays valid: .row > .col-12 > .row > .col-md-*.
+    """
+    # Find where each step begins.
+    cuts = []
+    for title, marker in WIZARD_STEPS:
+        if marker is None:
+            cuts.append((title, None))
+            continue
+
+        at = code.find(marker)
+        if at == -1:
+            fails.append('%s: wizard marker for "%s" NOT FOUND' % (rel, title))
+            return code, 'wizard:FAILED'
+        cuts.append((title, at))
+
+    open_row = '<div class="row">'
+    start = code.find(open_row)
+    if start == -1:
+        fails.append('%s: the form row was not found' % rel)
+        return code, 'wizard:FAILED'
+    start += len(open_row)
+
+    # The row closes just before the form does.
+    end = code.rfind('</div>', 0, code.find('</form>'))
+    if end == -1:
+        fails.append('%s: the end of the form row was not found' % rel)
+        return code, 'wizard:FAILED'
+
+    bounds = [start] + [c for _, c in cuts[1:]] + [end]
+
+    pieces = []
+    for i, (title, _) in enumerate(cuts):
+        body = code[bounds[i]:bounds[i + 1]]
+        # Steps 2+ come down ALREADY HIDDEN. If they arrived visible and JS hid
+        # them after load, the browser would paint the whole form and then
+        # collapse it — a visible jump on every page load, which is exactly the
+        # client's rule 2. The `hidden` attribute is honoured before any script
+        # runs, so there is nothing to see.
+        hide = '' if i == 0 else ' hidden'
+
+        pieces.append(
+            # col-lg-9 pairs with the stepper's col-lg-3 so the two sit side by
+            # side on a wide screen and stack on a narrow one. col-12 alone made
+            # the pane full width, which pushed it below the stepper.
+            '\n            <div class="pcu-step col-12 col-lg-9" data-step="%d" data-title="%s"%s>'
+            '\n              <div class="row">%s</div>'
+            '\n            </div>\n' % (i + 1, title, hide, body)
+        )
+
+    code = code[:start] + ''.join(pieces) + code[end:]
+
+    # The stepper itself is printed by PHP, so its numbers and titles come from
+    # one place rather than being duplicated in the markup.
+    code = code.replace(open_row, open_row + '\n            <?php pcu_wizard_nav(); ?>', 1)
+
+    # The submit button sits in the last step; the wizard adds Previous/Next.
+    code = code.replace('</form>', '  <?php pcu_wizard_controls(); ?>\n    </form>', 1)
+
+    return code, 'wizard:4 steps'
+
+
 PIPELINE = {}
 
+for rel in WIZARD:
+    PIPELINE.setdefault(rel, []).append(wizard)
 for rel in SELECT_FORMS:
     PIPELINE.setdefault(rel, []).append(fix_placeholders)
 for rel in PLAIN_TEXTAREA:

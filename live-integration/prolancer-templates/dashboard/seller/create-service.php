@@ -54,6 +54,9 @@ if (!empty($service)) {
 <div class="white-padding">
     <form id="create-service-form" enctype="multipart/form-data">
         <div class="row">
+            <?php pcu_wizard_nav(); ?>
+            <div class="pcu-step col-12 col-lg-9" data-step="1" data-title="About service">
+              <div class="row">
             <div class="col-md-6 mb-4">
                 <input type="text" name='title' class="form-control" value="<?php echo !empty($service) ? esc_attr($service->post_title) : ''; ?>" placeholder="<?php echo esc_attr__('Service Title','prolancer'); ?>">
             </div>
@@ -79,7 +82,11 @@ if (!empty($service)) {
                 <label><?php echo esc_html__('Description','prolancer'); ?></label>
                 <textarea name="description" cols="30" rows="10" class="form-control"><?php echo !empty($service) ? esc_html($service->post_content) : ''; ?></textarea>
             </div>
-            <div class="col-md-12 mb-4">
+            </div>
+            </div>
+
+            <div class="pcu-step col-12 col-lg-9" data-step="2" data-title="Media" hidden>
+              <div class="row"><div class="col-md-12 mb-4">
                 <label><?php echo esc_html__('Featured Images','prolancer'); ?></label>
                 <input id="upload-service-attachments" type="file" class="form-control" multiple accept="image/pdf/doc/docx/ppt/pptx*" data-service-id="<?php echo esc_attr($service_id); ?>" data-nonce="<?php echo wp_create_nonce('upload_file_nonce'); ?>">
                 <input type="hidden" name="attachments" class="attachment-ids" value="<?php if (!empty($ids)) { echo json_encode($ids); } ?>">
@@ -100,7 +107,11 @@ if (!empty($service)) {
                 </div>
             </div>
             
-            <!-- The packages section remains exactly as you had it -->
+            </div>
+            </div>
+
+            <div class="pcu-step col-12 col-lg-9" data-step="3" data-title="Pricing" hidden>
+              <div class="row"><!-- The packages section remains exactly as you had it -->
             <div class="col-md-12 mb-4">
                 <h4 class="mb-4"><?php echo esc_html__( "Packages", 'prolancer' ); ?></h4>              
                 <div class="packages">
@@ -212,7 +223,11 @@ if (!empty($service)) {
                 </div>
                 <a href="#" class="add-additional-service prolancer-btn" data-nonce="<?php echo wp_create_nonce('additional_service_nonce'); ?>"><i class="fal fa-plus"></i> <?php echo esc_html__( "Add Extra Service", 'prolancer' ); ?> </a>
             </div>
-            <div class="col-md-12 mb-5">
+            </div>
+            </div>
+
+            <div class="pcu-step col-12 col-lg-9" data-step="4" data-title="FAQ" hidden>
+              <div class="row"><div class="col-md-12 mb-5">
                 <h4 class="mb-4"><?php echo esc_html__( "FAQ", 'prolancer' ); ?></h4>               
                 <div class="faqs sortable">
                 <?php
@@ -258,5 +273,8 @@ if (!empty($service)) {
                 } ?></a>
             </div>
         </div>
+            </div>
+</div>
+      <?php pcu_wizard_controls(); ?>
     </form>
 </div>

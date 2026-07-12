@@ -256,6 +256,82 @@ function pcu_create_project() {
 }
 
 /**
+ * The wizard's steps.
+ *
+ * ONE source of truth: the template's step wrappers are generated from this same
+ * list (patch_templates.py), and the stepper below is printed from it. The two
+ * cannot drift apart into a nav that says "Pricing" over a pane full of FAQs.
+ *
+ * @return array<int,array{title:string,hint:string}>
+ */
+function pcu_wizard_steps() {
+	return array(
+		array(
+			'title' => __( 'About service', 'prolancer' ),
+			'hint'  => __( 'Title, category and description', 'prolancer' ),
+		),
+		array(
+			'title' => __( 'Media', 'prolancer' ),
+			'hint'  => __( 'Your featured images', 'prolancer' ),
+		),
+		array(
+			'title' => __( 'Pricing', 'prolancer' ),
+			'hint'  => __( 'Packages and extras', 'prolancer' ),
+		),
+		array(
+			'title' => __( 'FAQ', 'prolancer' ),
+			'hint'  => __( 'Answer the usual questions', 'prolancer' ),
+		),
+	);
+}
+
+/**
+ * The numbered vertical stepper, down the left of the form.
+ *
+ * Printed server-side so the wizard is whole before the first paint. Building it
+ * with JS after load would flash the entire form and then collapse it — the page
+ * would visibly jump, which is precisely the client's rule 2.
+ */
+function pcu_wizard_nav() {
+	?>
+	<div class="pcu-wizard-nav col-12 col-lg-3">
+		<ol class="pcu-steps">
+			<?php foreach ( pcu_wizard_steps() as $i => $step ) : ?>
+				<li class="pcu-step-item<?php echo 0 === $i ? ' is-current' : ''; ?>"
+					data-goto="<?php echo esc_attr( $i + 1 ); ?>">
+					<span class="pcu-step-num"><?php echo esc_html( $i + 1 ); ?></span>
+					<span class="pcu-step-text">
+						<span class="pcu-step-title"><?php echo esc_html( $step['title'] ); ?></span>
+						<span class="pcu-step-hint"><?php echo esc_html( $step['hint'] ); ?></span>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ol>
+	</div>
+	<?php
+}
+
+/**
+ * Previous / Next, under the form.
+ *
+ * The plugin's own Create/Update button lives in the last step and is left
+ * exactly where it is — the wizard never touches how the service is saved.
+ */
+function pcu_wizard_controls() {
+	?>
+	<div class="pcu-wizard-controls">
+		<button type="button" class="pcu-wiz-prev prolancer-btn" hidden>
+			<?php esc_html_e( 'Previous', 'prolancer' ); ?>
+		</button>
+
+		<button type="button" class="pcu-wiz-next prolancer-btn">
+			<?php esc_html_e( 'Next', 'prolancer' ); ?>
+		</button>
+	</div>
+	<?php
+}
+
+/**
  * Is this the Create/Edit Service screen?
  */
 function pcu_is_service_form_screen() {
@@ -290,6 +366,22 @@ function pcu_service_form_assets() {
 		$uri . '/assets/js/pcu-service-form.js',
 		array(),
 		call_user_func( $ver, $dir . '/assets/js/pcu-service-form.js' ),
+		true
+	);
+
+	// The wizard.
+	wp_enqueue_style(
+		'pcu-wizard',
+		$uri . '/assets/css/pcu-wizard.css',
+		array( 'pcu-service-form' ),
+		call_user_func( $ver, $dir . '/assets/css/pcu-wizard.css' )
+	);
+
+	wp_enqueue_script(
+		'pcu-wizard',
+		$uri . '/assets/js/pcu-wizard.js',
+		array(),
+		call_user_func( $ver, $dir . '/assets/js/pcu-wizard.js' ),
 		true
 	);
 }
